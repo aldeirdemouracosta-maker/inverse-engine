@@ -1,6 +1,7 @@
 # Prompt para o Codex — terminar o Inverse Engine (VH2 Studio como primeiro perfil)
 
 Repositório: https://github.com/aldeirdemouracosta-maker/inverse-engine (branch `main`).
+**Os marcos 1 e 2 estão prontos. Comece pelo marco 3.**
 Trabalhe **nesse repositório**, marco por marco, com um commit por marco e todos os testes passando.
 
 ## 0. Leia antes de começar
@@ -26,21 +27,21 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
 
 ### Situação real do código (importante)
 - O código da **v1.1 do VH2 Studio foi perdido** (`vh2_disc.py`, `vh2_tim.py`, `ppf.py`, `bps_patch.py`,
-  `vh2_rom_editor.py`, `vh2_studio.py` e as 137 verificações). **Não procure por ele.** As partes que ele
-  tinha (EDC/ECC, PPF, BPS, TIM/PNG sem Pillow, trocas de gráficos, sessão com pendentes, janela PySide6)
-  devem ser **escritas agora**, seguindo as referências técnicas da seção 0.4.
+  `vh2_rom_editor.py`, `vh2_studio.py` e as 137 verificações). **Não procure por ele.** EDC/ECC, PPF, BPS,
+  TIM/PNG e as camadas já foram reescritos no marco 2; o resto (ChangeSet com undo, projeto, exportação,
+  janela PySide6 etc.) é escrito nos marcos 3 em diante.
 - `legado/VH2-PS1-Studio-v3.0/` guarda a v3.0-alpha (Tkinter + Pillow + IPS). **Não altere essa pasta** e não a
   importe no núcleo. Pode servir de referência de ideias: busca por valor/hex com curinga `??`/texto
   Shift-JIS, ChangeSet com undo/redo, prévia de aparência (direções, animação, GIF), prévia de falas com
   retrato. O que for aproveitado é **reescrito** no núcleo novo (sem Pillow) e na interface PySide6.
-- O **marco 1 está pronto** (ver 0.2). Continue do **marco 2**.
+- Os **marcos 1 e 2 estão prontos** (ver 0.2): 94 testes passando. Continue do **marco 3**.
 
 ### 0.1 Estrutura do repositório
 ```
 inverse_engine/
   cli.py                      modo terminal: abrir | tabela | findings  (python -m inverse_engine.cli)
-  core/      rom_image.py profile.py            (prontos)  patch_stack.py changeset.py export.py project.py (fazer)
-  formats/   disc.py psexe.py                   (prontos)  edc_ecc.py ppf.py bps.py tim.py png.py tmd.py vab.py memcard.py (fazer)
+  core/      rom_image.py profile.py patch_stack.py paths.py   (prontos)  changeset.py project.py export.py (fazer)
+  formats/   disc.py psexe.py edc_ecc.py ppf.py bps.py tim.py png.py (prontos)  tmd.py vab.py memcard.py (fazer)
   research/  findings.py                        (pronto)   profiler.py gabarito.py cheats.py (fazer)
   assistant/ rules.py ollama.py context.py      (fazer)
   scripting/ api.py console.py                  (fazer)
@@ -48,6 +49,7 @@ inverse_engine/
 profiles/SLUS-00940-USA.json          perfil (armas + habilidades)
 research/findings/SLUS-00940-USA.json findings iniciais (F-0001…F-0016, S-0001…S-0003, S-0010…S-0021)
 tests/  fixture_cd.py  test_rom_image.py  test_profile_anchors.py  test_profile_data.py
+        test_edc_ecc.py  test_ppf_bps.py  test_tim_png.py  test_patch_stack.py
 legado/ VH2-PS1-Studio-v3.0 (somente referência)
 .github/workflows/tests.yml  (ubuntu-latest, Python 3.10 e 3.12, QT_QPA_PLATFORM=offscreen, PySide6)
 ```
@@ -72,9 +74,30 @@ Rodar os testes: `python -m unittest discover -s tests -t .` (sempre com `-t .`;
   `edit_policy(status, research_mode)` → `EditPolicy(editable, raw_only, experimental, badge, reason)`,
   `add_evidence`, `set_status` (promover exige evidência nova; rebaixar sempre permitido), `by_status()`.
 - `tests/fixture_cd.py`: `CdBuilder().build({"PASTA/ARQ.EXT": bytes}, form2={...})` monta BIN Mode 2 com
-  ISO9660 e subpastas (EDC/ECC **zerados**: no marco 2, passe a gravar EDC/ECC corretos com `formats/edc_ecc.py`);
+  ISO9660 e subpastas, todos os setores com EDC/ECC corretos;
   `raw_sector(lba, payload, form2, mode)`; `make_slus(names, table_offset, stride, count, pointer_table, values)`
   gera SLUS artificial com cabeçalho PS-X EXE, ponteiros de nomes e tabela.
+- `formats/edc_ecc.py` (marco 2): `edc(bytes)`, `compute(setor)` (EDC e ECC recalculados), `is_valid(setor)`.
+- `formats/ppf.py`: `parse(bytes)` → `Ppf(version, description, records[(offset, bytes)], block, image_size,
+  undo, file_id)`, `.check_block(imagem)` (None ou motivo), `.apply_to(imagem)`; `build_ppf3(orig, novo, desc,
+  blockcheck, undo)`.
+- `formats/bps.py`: `create(origem, destino, metadados)`, `apply(origem, patch)` (confere os três CRC32).
+- `formats/png.py`: `write_indexed`, `write_rgba`, `read` → `PngImage(width, height, color_type, rows, palette)`.
+- `formats/tim.py`: `parse(dados, offset)` → `TimInfo` (offset, size, bpp, width, height, vram_pos, clut_pos,
+  clut_colors, clut_count, pixel_offset…), `scan`, `scan_image(RomImage)` → `[(arquivo, TimInfo)]`,
+  `export_png`, `import_drawing`, `import_colors` (devolvem o TIM inteiro, mesmo tamanho), `to_rgba`,
+  `from_rgba` (preto opaco → 0x8000), `palette`, `indices`, `build` (para testes).
+- `core/patch_stack.py`: operações `FieldEdit(table, index, field, value)`, `RawEdit(file, offset, data)`,
+  `GraphicEdit(file, offset, original, new, kind, palette_index, clut_pos)`; `Layer(name, kind, active, ppf,
+  ppf_block_acknowledged, bps_target, edits)` com kind `ppf|bps_import|changeset|graphics|raw`;
+  `PatchStack(image, profile, findings, research_mode)`: `add(layer)`, `writes(i)`, `conflicts()` →
+  `[Conflict(kind, layers, detail, file, file_range, lba_range, target)]` (kind `CONFLITO|REDUNDANTE|INTEGRIDADE|
+  PALETA_COMPARTILHADA`, `.id`, `.needs_ack`), `build(acknowledged=conjunto_de_ids)` → `BuildResult(data,
+  touched_sectors, system_bytes_ignored, conflicts, experimental)`, `field_label`, `locate`.
+  A política de edição por finding já é aplicada no `FieldEdit`. O ChangeSet do marco 3 deve **gerar camadas
+  `changeset`/`graphics`/`raw` com essas operações**, não criar outro mecanismo de escrita.
+- `core/paths.py`: `with_ext(caminho, ".ext")`, `replace_ext(caminho, ".bin", ".cue")`.
+- CLI: `abrir`, `tabela`, `findings`, `tims`, `ppf`.
 
 Se precisar mudar uma dessas APIs, adapte os testes **mantendo a mesma verificação**. Nunca apague nem
 enfraqueça um teste.
@@ -82,7 +105,7 @@ enfraqueça um teste.
 ### 0.3 Convenções
 - Português do Brasil em textos, mensagens, nomes de testes e commits. Frases diretas.
 - Núcleo só com biblioteca padrão. PySide6 só em `inverse_engine/ui/`. Nada de Pillow, numpy etc. no núcleo.
-- Nomes de saída com o helper `with_ext(path, ext)` (criar em `core/paths.py`): **acrescenta** a extensão
+- Nomes de saída com o helper `with_ext(path, ext)` (já existe em `core/paths.py`): **acrescenta** a extensão
   ao nome, nunca usa `Path.with_suffix` (nomes de jogo têm pontos: `SLUS_009.40`, `Vandal Hearts II (USA).bin`).
 - Toda escrita de arquivo de saída que já existe exige confirmação explícita (parâmetro `overwrite=True`
   no núcleo; diálogo na interface).
@@ -91,7 +114,7 @@ enfraqueça um teste.
   (o usuário está aprendendo Linux). Para isso, toda ação da interface deve ter um subcomando equivalente
   em `python -m inverse_engine.cli`.
 
-### 0.4 Referências técnicas (a v1.1 se perdeu; implemente a partir daqui)
+### 0.4 Referências técnicas (CD, EDC/ECC, PPF, BPS, TIM e PNG já implementados no marco 2; ficam como referência)
 
 **Setor de CD (2352 bytes).** Sync 12 (`00 FF×10 00`), cabeçalho 4 (MSF em BCD, LBA+150; modo),
 Mode 2: subcabeçalho 8 (arquivo, canal, submodo, codificação, repetido; submodo bit 0x20 = Form 2).
@@ -139,6 +162,10 @@ com sinal no bit 0), 3 TargetCopy (idem); no fim CRC32 da origem, do destino e d
 bytes anteriores), little-endian. VLQ: `loop: x = n & 0x7F; n >>= 7; if n == 0: out(0x80|x); break; out(x); n -= 1`.
 Criador: pode ser simples (SourceRead/TargetRead por faixas iguais/diferentes), o importante é aplicar e conferir.
 
+**EDC/ECC — conferência já feita:** os testes do marco 2 reconstroem o polinômio do EDC a partir do ECMA-130 e
+conferem que as síndromes Reed-Solomon de todas as colunas P e diagonais Q dão zero em 40 setores aleatórios.
+Isso substitui a comparação com o ECM compilado.
+
 **TIM.** `u32 0x10`, `u32 flags` (bits 0–1: 0=4bpp, 1=8bpp, 2=16bpp, 3=24bpp; bit 3 = tem CLUT).
 Bloco CLUT: `u32 tamanho (inclui 12)`, `u16 x, y, largura (cores), altura (paletas)`, cores 16 bits.
 Bloco de imagem: `u32 tamanho`, `u16 x, y, largura em unidades de 16 bits, altura`, pixels (4bpp: nibble baixo
@@ -149,6 +176,17 @@ como 0x8000** (bit STP). Procura em qualquer arquivo do CD (Form 2 ignorado), va
 RGBA para 16bpp; ler PNG indexado ou RGBA 8 bits, **recusar entrelaçado**, tamanho diferente do TIM e cor fora
 da paleta. Reimportação de desenho mapeia por cor (aceita paleta reordenada); reimportação de cores troca só a
 paleta. Sempre o mesmo tamanho em bytes e mesma posição na VRAM.
+
+**Formatos dos marcos 8 a 10 (ainda não implementados).** Use como fonte a documentação "psx-spx"
+(Nocash PSX specifications) e confira cada detalhe com fixtures sintéticas:
+- Memory card: 128 KiB = 16 blocos de 8 KiB; bloco 0 é o diretório (quadros de 128 bytes; o último byte de cada
+  quadro é o XOR dos 127 anteriores); cada save começa com "SC", ícone 16×16 4bpp e paleta de 16 cores.
+- VAB: cabeçalho "pBAV" (VH) com programas, tons e tabela de tamanhos das amostras; o corpo (VB) tem as amostras
+  em SPU-ADPCM (blocos de 16 bytes: 1 byte de shift/filtro, 1 de flags, 14 de dados = 28 amostras; filtros
+  (0,0), (60,0), (115,-52), (98,-55), (122,-60) sobre 64).
+- TMD: id 0x41, cabeçalho com número de objetos; cada objeto aponta para vértices (SVECTOR 8 bytes), normais e
+  primitivas (cabeçalho olen/ilen/flag/mode por primitiva). Comece só com contagens e triângulos/quadriláteros
+  planos e texturizados; exporte OBJ.
 
 ---
 
@@ -628,14 +666,17 @@ exportado é distribuído pelo projeto.
 ## Ordem de entrega (cada marco com testes passando e um commit)
 
 1. ~~RomImage + RomProfile + findings~~ **pronto**.
-2. **EDC/ECC + PPF + BPS + PatchStack + conflitos (incluindo a camada `graphics`, TIM e PNG).**
+2. ~~EDC/ECC + PPF + BPS + PatchStack + conflitos (incluindo a camada `graphics`, TIM e PNG)~~ **pronto**.
    Aceite: EDC/ECC conforme 0.4 (com a conferência cruzada ou o aviso de pulado); PPF 1/2/3 aplicado em BIN
    sintética; PPF + changeset no mesmo setor **sem conflito falso**; conflito real detectado com camadas, faixas
    (arquivo e LBA) e campo (`weapons[182].attack`); gráfico e arma saem na mesma BIN; desativar camada e gerar de
    novo reproduz a saída esperada; EDC/ECC só recalculado no fim e só nos setores tocados; setor original com
    EDC/ECC inválido recusado; gráfico em subpasta exportado corretamente; `fixture_cd.py` passa a gravar EDC/ECC.
-3. **ChangeSet com undo/redo + arquivo de projeto** (`<nome>.vh2proj.json`). Aceite: desfazer/refazer grupos;
-   projeto salvo e reaberto idêntico; caminhos relativos à pasta do projeto.
+3. **ChangeSet com undo/redo + arquivo de projeto** (`<nome>.vh2proj.json`). O ChangeSet guarda operações
+   `{id, alvo, antes, depois, origem: manual|regras|IA|script, finding, data, grupo}` e gera as camadas do
+   `PatchStack`; camadas PPF/BPS guardam caminho relativo + SHA-256 do arquivo de patch. Aceite: desfazer/refazer
+   grupos; projeto salvo e reaberto idêntico; caminhos relativos à pasta do projeto; patch com hash diferente do
+   registrado é recusado ao reabrir (P4).
 4. **Validation + Export + relatório + hexa.** Aceite: BIN nova + BPS + CUE + relatório `.md`/`.json`; relatório
    JSON reproduz a saída (mesmo hash) a partir do original + camadas; reler a BIN nova e comparar; aplicar o BPS no
    original e comparar; original intocado; sobrescrita exige confirmação.
@@ -689,7 +730,7 @@ e o CHANGELOG, faça commit com mensagem em português descrevendo o marco e env
 - Não recomeçar o repositório, não trocar a stack (PySide6 na interface, biblioteca padrão no núcleo).
 - Não alterar `legado/` nem importar dele.
 - Não acrescentar abas antes do marco 4.
-- Não deixar a tela inicial ou o workspace avançarem antes do núcleo (marcos 2–4).
+- Não deixar a tela inicial ou o workspace avançarem antes do núcleo (marcos 3–4).
 - Não dar ao console de scripts acesso direto a bytes nem ao sistema de arquivos fora do projeto.
 - Não embutir arte, sons ou modelos de jogos no repositório (inclusive em temas e testes).
 - Não pedir confirmação fora dos portões P1–P4, e nunca pular um portão em nome da automação.
