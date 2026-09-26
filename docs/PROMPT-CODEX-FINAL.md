@@ -34,7 +34,7 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
   importe no núcleo. Pode servir de referência de ideias: busca por valor/hex com curinga `??`/texto
   Shift-JIS, ChangeSet com undo/redo, prévia de aparência (direções, animação, GIF), prévia de falas com
   retrato. O que for aproveitado é **reescrito** no núcleo novo (sem Pillow) e na interface PySide6.
-- Os **marcos 1 a 5 estão prontos** (ver 0.2): 131 testes passando. Continue do **marco 6**.
+- Os **marcos 1 a 5 estão prontos** (ver 0.2): 128 testes passando. Continue do **marco 6**.
 
 ### 0.1 Estrutura do repositório
 ```
