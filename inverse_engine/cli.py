@@ -10,6 +10,11 @@
     python -m inverse_engine.cli projeto campo   PROJ weapons 182 attack 45 [--grupo ROTULO]
     python -m inverse_engine.cli projeto desfazer|refazer PROJ
     python -m inverse_engine.cli projeto mostrar PROJ                      # camadas, histórico, conflitos
+    python -m inverse_engine.cli projeto hexa    PROJ                      # escritas: offset | LBA | RAM | …
+    python -m inverse_engine.cli projeto reconhecer PROJ                   # reconhece os conflitos atuais (P4)
+    python -m inverse_engine.cli projeto exportar PROJ [--sobrescrever]    # BIN + BPS + CUE + relatório (P2)
+    python -m inverse_engine.cli registro IMAGEM weapons 182               # registro com fronteiras dos campos
+    python -m inverse_engine.cli reproduzir RELATORIO.relatorio.json       # remonta e compara o SHA-256
 """
 from __future__ import annotations
 
@@ -134,6 +139,24 @@ def cmd_projeto(args) -> int:
         cs = p.changesets[args.changeset or next(iter(p.changesets))]
         ops = cs.undo() if args.acao == "desfazer" else cs.redo()
         print(f"{args.acao}: {len(ops)} operação(ões)" + (f" do grupo '{ops[0].group_label}'" if ops else ""))
+    elif args.acao == "hexa":
+        from inverse_engine.core import hexview
+        rows = hexview.write_rows(p.stack())
+        print(hexview.format_table([r.cells() for r in rows], hexview.HEADERS))
+        return 0
+    elif args.acao == "reconhecer":
+        pend = [c for c in p.stack().conflicts() if c.needs_ack and c.id not in p.acknowledged]
+        for c in pend:
+            print(f"reconhecido: {c.detail}")
+            p.acknowledged.append(c.id)
+        if not pend:
+            print("nenhum conflito pendente")
+    elif args.acao == "exportar":
+        from inverse_engine.core.export import export
+        res = export(p, overwrite=args.sobrescrever)
+        for k, v in res.files.items():
+            print(f"{k:<15} {v}")
+        return 0
     elif args.acao == "mostrar":
         print(f"Projeto {p.name}  perfil {p.profile_id}  imagem {p.base_image}")
         for o in p.order:
@@ -147,6 +170,32 @@ def cmd_projeto(args) -> int:
         return 0
     p.save()
     return 0
+
+
+def cmd_registro(args) -> int:
+    from inverse_engine.core import hexview
+    image = RomImage.open(args.imagem)
+    profiles = RomProfile.load_all(args.perfis)
+    match = next((m for m in match_profiles(image, profiles) if m.applies), None)
+    if match is None:
+        print("Nenhum perfil se aplica a esta imagem.", file=sys.stderr)
+        return 2
+    profile = next(p for p in profiles if p.profile_id == match.profile_id)
+    table = profile.table(args.tabela)
+    data = image.read_file(table.file)
+    base = table.record_offset(args.id)
+    print(f"{args.tabela}[{args.id}] {table.read_name(data, args.id) or ''}  arquivo {table.file} 0x{base:X}")
+    rows = hexview.record_view(table, data, args.id, _findings_for(profile.profile_id))
+    print(hexview.format_table([[f"+0x{r['offset']:02X}", r["campo"], r["hex"], str(r["valor"]), r["estado"]]
+                                for r in rows], ["OFF", "CAMPO", "HEX", "VALOR", "ESTADO"]))
+    return 0
+
+
+def cmd_reproduzir(args) -> int:
+    from inverse_engine.core.export import reproduce
+    ok, got = reproduce(args.relatorio)
+    print(("REPRODUZ: mesmo SHA-256 " if ok else "NÃO REPRODUZ: SHA-256 diferente ") + got)
+    return 0 if ok else 1
 
 
 def _findings_for(profile_id: str) -> FindingsDB:
@@ -178,11 +227,22 @@ def main(argv=None) -> int:
     pp.add_argument("--imagem")
     pp.set_defaults(func=cmd_ppf)
     pj = sub.add_parser("projeto", help="projeto .vh2proj.json: novo, patch, campo, desfazer, refazer, mostrar")
-    pj.add_argument("acao", choices=["novo", "patch", "campo", "desfazer", "refazer", "mostrar"])
+    pj.add_argument("acao", choices=["novo", "patch", "campo", "desfazer", "refazer", "mostrar", "hexa",
+                                     "reconhecer", "exportar"])
+    pj.add_argument("--sobrescrever", action="store_true")
     pj.add_argument("args", nargs="+")
     pj.add_argument("--changeset")
     pj.add_argument("--grupo")
     pj.set_defaults(func=cmd_projeto)
+    rg = sub.add_parser("registro", help="registro de tabela com as fronteiras dos campos")
+    rg.add_argument("imagem")
+    rg.add_argument("tabela")
+    rg.add_argument("id", type=lambda s: int(s, 0))
+    rg.add_argument("--perfis", default=str(PROFILES))
+    rg.set_defaults(func=cmd_registro)
+    rp = sub.add_parser("reproduzir", help="remonta a saída a partir do relatório e compara o hash")
+    rp.add_argument("relatorio")
+    rp.set_defaults(func=cmd_reproduzir)
     args = ap.parse_args(argv)
     return args.func(args)
 

@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Marco 4 — exportação, relatório e hexa
+- `core/export.py`: BIN nova + BPS contra a original + CUE + relatório .md/.json (âncoras, camadas com
+  hash, operações com estado do finding, faixas com arquivo/LBA/RAM/campo, conflitos reconhecidos,
+  hashes de saída); conferências antes e depois de gravar; sobrescrita só com confirmação;
+  `reproduce()` remonta a saída pelo relatório e compara o SHA-256
+- `core/hexview.py`: linhas OFFSET | LBA | RAM | ORIGINAL | NOVO | CAMPO, registro com fronteiras
+  dos campos (bytes sem campo como byte_0xNN), blocos do TIM e só as faixas alteradas
+- CLI `projeto hexa|reconhecer|exportar`, `registro`, `reproduzir`
+
 ## Marco 3 — ChangeSet e projeto
 - ChangeSet: operações {alvo, antes, depois, origem, finding, data, grupo}; grupos desfeitos/refeitos
   de uma vez; erro no meio de um grupo não deixa operação pela metade; gera camadas do PatchStack

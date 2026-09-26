@@ -213,11 +213,14 @@ class Project:
     @classmethod
     def load(cls, path: str | Path, **dirs) -> "Project":
         path = Path(path)
-        d = json.loads(path.read_text(encoding="utf-8"))
+        return cls.from_dict(json.loads(path.read_text(encoding="utf-8")), path.parent, **dirs)
+
+    @classmethod
+    def from_dict(cls, d: dict, folder: str | Path, **dirs) -> "Project":
         if d.get("format") != FORMAT:
             raise ProjectError(f"formato de projeto não suportado: {d.get('format')}")
-        p = cls(d["name"], path.parent, d["base_image"]["path"], d["base_image"]["sha256"], d.get("profile_id"),
-                d.get("research_mode", False), d.get("order", []), **dirs)
+        p = cls(d["name"], Path(folder), d["base_image"]["path"], d["base_image"]["sha256"], d.get("profile_id"),
+                d.get("research_mode", False), [dict(o) for o in d.get("order", [])], **dirs)
         p.patches = {r["name"]: PatchLayerRef(**r) for r in d.get("patches", [])}
         p.changesets = {c["name"]: ChangeSet.from_dict(c) for c in d.get("changesets", [])}
         p.acknowledged = d.get("acknowledged", [])

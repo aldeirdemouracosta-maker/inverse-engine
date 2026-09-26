@@ -38,6 +38,9 @@ python3 -m inverse_engine.cli ppf    "take_turns.ppf" --imagem "Vandal Hearts II
 python3 -m inverse_engine.cli projeto novo ~/vh2 "Rebalance 2026" "Vandal Hearts II (USA).cue"
 python3 -m inverse_engine.cli projeto campo ~/vh2/"Rebalance 2026.vh2proj.json" weapons 182 attack 45
 python3 -m inverse_engine.cli projeto mostrar ~/vh2/"Rebalance 2026.vh2proj.json"
+python3 -m inverse_engine.cli projeto hexa ~/vh2/"Rebalance 2026.vh2proj.json"
+python3 -m inverse_engine.cli projeto exportar ~/vh2/"Rebalance 2026.vh2proj.json"
+python3 -m inverse_engine.cli reproduzir ~/vh2/saida/"Rebalance 2026.relatorio.json"
 python3 -m unittest discover -s tests -t .                           # testes (sintéticos)
 ```
 
@@ -48,8 +51,9 @@ python3 -m unittest discover -s tests -t .                           # testes (s
 | 1. RomImage + RomProfile + findings | feito: BIN/CUE/executável avulso, ISO9660 com subpastas, Form 2 marcado, offset ↔ LBA ↔ BIN, âncoras, tabelas genéricas, política de edição por estado |
 | 2. EDC/ECC + PPF + BPS + TIM/PNG + PatchStack + conflitos | feito: EDC/ECC conferido contra o ECMA-130, PPF 1/2/3, BPS, TIM/PNG sem Pillow, camadas ppf/bps_import/changeset/graphics/raw, conflitos só em dados de usuário, EDC/ECC recalculado no fim |
 | 3. ChangeSet com undo/redo + arquivo de projeto | feito: operações com antes/depois/origem/finding, grupos desfeitos de uma vez, `.vh2proj.json` com caminhos relativos, hashes conferidos ao reabrir (P4), salvar/reabrir idêntico |
-| 4. Validation + Export + relatório + hexa | próximo |
-| 5–14 | pendentes |
+| 4. Validation + Export + relatório + hexa | feito: BIN + BPS + CUE + relatório .md/.json, conferências (reler BIN, BPS na original, EDC/ECC, original intocado), sobrescrita só com confirmação, relatório reproduz a saída, hexa de escritas/registros/TIM |
+| 5. Casca PySide6 (menu inicial + workspace) | próximo |
+| 6–14 | pendentes |
 
 `legado/VH2-PS1-Studio-v3.0/` guarda a versão 3.0-alpha (Tkinter) sem alterações, como
 referência. O código da v1.1 do VH2 Studio foi perdido; EDC/ECC, PPF, BPS e TIM/PNG foram reescritos
