@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Marco 3 — ChangeSet e projeto
+- ChangeSet: operações {alvo, antes, depois, origem, finding, data, grupo}; grupos desfeitos/refeitos
+  de uma vez; erro no meio de um grupo não deixa operação pela metade; gera camadas do PatchStack
+  com só o último valor de cada alvo
+- Projeto `<nome>.vh2proj.json`: imagem base e patches por caminho relativo + SHA-256 (mudou → P4),
+  ordem e ativação das camadas, changesets com histórico e refazer, conflitos reconhecidos, saída;
+  gravação atômica; salvo e reaberto idêntico
+- CLI `projeto novo|patch|campo|desfazer|refazer|mostrar`
+
 ## Marco 2 — camadas e formatos
 - EDC/ECC (Mode 1, Mode 2 Form 1/2) conferido pelas síndromes Reed-Solomon do ECMA-130
 - PPF 1/2/3 (bloco de conferência, FILE_ID.DIZ, undo) e `build_ppf3`

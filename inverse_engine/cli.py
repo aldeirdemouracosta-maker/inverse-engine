@@ -5,6 +5,11 @@
     python -m inverse_engine.cli findings                # resumo do banco de descobertas
     python -m inverse_engine.cli tims   IMAGEM           # TIMs encontrados em todos os arquivos
     python -m inverse_engine.cli ppf    PATCH.ppf [--imagem IMAGEM]   # registros e bloco de conferência
+    python -m inverse_engine.cli projeto novo    PASTA NOME IMAGEM         # cria <NOME>.vh2proj.json
+    python -m inverse_engine.cli projeto patch   PROJ ARQUIVO.ppf          # acrescenta camada PPF/BPS
+    python -m inverse_engine.cli projeto campo   PROJ weapons 182 attack 45 [--grupo ROTULO]
+    python -m inverse_engine.cli projeto desfazer|refazer PROJ
+    python -m inverse_engine.cli projeto mostrar PROJ                      # camadas, histórico, conflitos
 """
 from __future__ import annotations
 
@@ -106,6 +111,44 @@ def cmd_ppf(args) -> int:
     return 0
 
 
+def cmd_projeto(args) -> int:
+    from inverse_engine.core.project import Project
+    if args.acao == "novo":
+        pasta, nome, imagem = args.args
+        p = Project.create(pasta, nome, imagem)
+        p.add_changeset("Alterações")
+        print(f"Projeto criado: {p.save()}  (perfil: {p.profile_id or 'nenhum'})")
+        return 0
+    p = Project.load(args.args[0])
+    rest = args.args[1:]
+    if args.acao == "patch":
+        ref = p.add_patch(rest[0])
+        print(f"Camada {ref.kind} '{ref.name}' acrescentada ({ref.path})")
+    elif args.acao == "campo":
+        table, index, field_name, value = rest
+        cs = p.bind(args.changeset or next(iter(p.changesets)))
+        with cs.group(args.grupo or f"{table}[{index}].{field_name}"):
+            op = cs.set_field(table, int(index, 0), field_name, int(value, 0))
+        print(f"{op.target}: {op.before} → {op.after}")
+    elif args.acao in ("desfazer", "refazer"):
+        cs = p.changesets[args.changeset or next(iter(p.changesets))]
+        ops = cs.undo() if args.acao == "desfazer" else cs.redo()
+        print(f"{args.acao}: {len(ops)} operação(ões)" + (f" do grupo '{ops[0].group_label}'" if ops else ""))
+    elif args.acao == "mostrar":
+        print(f"Projeto {p.name}  perfil {p.profile_id}  imagem {p.base_image}")
+        for o in p.order:
+            ref = p.patches.get(o["name"]) or p.changesets[o["name"]]
+            print(f"  [{'x' if ref.active else ' '}] {o['type']:<9} {o['name']}")
+        for cs in p.changesets.values():
+            for h in cs.history():
+                print(f"    #{h['id']:<4} grupo {h['grupo']:<3} {h['alvo']:<28} {h['antes']} → {h['depois']}  ({h['origem']})")
+        for c in p.stack().conflicts():
+            print(f"  {c.kind}: {c.detail}")
+        return 0
+    p.save()
+    return 0
+
+
 def _findings_for(profile_id: str) -> FindingsDB:
     p = FINDINGS / f"{profile_id}.json"
     return FindingsDB.load(p) if p.exists() else FindingsDB({"findings": []})
@@ -134,6 +177,12 @@ def main(argv=None) -> int:
     pp.add_argument("patch")
     pp.add_argument("--imagem")
     pp.set_defaults(func=cmd_ppf)
+    pj = sub.add_parser("projeto", help="projeto .vh2proj.json: novo, patch, campo, desfazer, refazer, mostrar")
+    pj.add_argument("acao", choices=["novo", "patch", "campo", "desfazer", "refazer", "mostrar"])
+    pj.add_argument("args", nargs="+")
+    pj.add_argument("--changeset")
+    pj.add_argument("--grupo")
+    pj.set_defaults(func=cmd_projeto)
     args = ap.parse_args(argv)
     return args.func(args)
 
