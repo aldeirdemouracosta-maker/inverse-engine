@@ -64,6 +64,11 @@ class TerminalTest(unittest.TestCase):
         self.assertIn("sha256sum", terminal.hash_arquivo("x.bin"))
 
 
+def json_status(path):
+    import json
+    return {f["id"]: f["status"] for f in json.loads(path.read_text(encoding="utf-8"))["findings"]}
+
+
 @unittest.skipUnless(HAS_QT, "PySide6 indisponível")
 class UiTest(unittest.TestCase):
     def setUp(self):
@@ -176,6 +181,58 @@ class UiTest(unittest.TestCase):
         # reabrir o projeto pelo recente
         self.app.open_project(p.path)
         self.assertEqual(ws.grid.item(182, col).text(), "45")
+
+    def test_modo_pesquisa(self):
+        import shutil
+        from tests.test_research import planted
+        from tests.fixture_cd import CdBuilder
+        root = Path(self.tmp.name)
+        fdir = root / "findings"
+        fdir.mkdir()
+        shutil.copy(Path(__file__).resolve().parent.parent / "research" / "findings" / "SLUS-00940-USA.json", fdir)
+        b = root / "pesquisa.bin"
+        b.write_bytes(CdBuilder().build(dict(files(), **{"SLUS_009.40": planted()})))
+        p = self.app.start_project(b, root / "p3", "Pesquisa")
+        p.findings_dir = fdir  # nunca gravar nos findings do repositório durante os testes
+        ws = self.app.workspace
+        ws.load_project(p)
+        self.assertFalse(ws.tabs.isTabEnabled(ws.research_tab_index))
+        ws.research.setChecked(True)
+        self.assertTrue(ws.tabs.isTabEnabled(ws.research_tab_index))
+        for w in self.interactive(ws):
+            self.assertTrue(w.accessibleName(), f"{type(w).__name__} sem nome acessível")
+        ws.run_profiler()
+        self.assertEqual(ws.profile_grid.rowCount(), 43)
+        csv = root / "gabarito.csv"
+        csv.write_text("id,atributo,valor,fonte\n" + "".join(f"{i},poder,{100 + i},teste\n" for i in range(10, 22)))
+        ws.import_gabarito(str(csv))
+        self.assertEqual(ws.proposals.count(), 1)
+        ws.apply_proposals()
+        self.assertEqual(ws.findings_db.status("F-0100"), "PROVAVEL")
+        self.assertEqual(p.findings().status("F-0100"), "PROVAVEL")  # gravado na cópia
+        ws.r_offset.setValue(0x05)
+        ws.r_text.setText("nível mínimo?")
+        ws.mark_hypothesis()
+        self.assertEqual(ws.findings_db.get("F-0101")["status"], "HIPOTESE")
+        ws.r_index.setValue(182)
+        ws.r_offset.setValue(0x0C)
+        ws.r_type.setCurrentText("u16le")
+        ws.r_value.setValue(999)
+        res = ws.make_test_bin()
+        self.assertTrue(res.image.exists())
+        self.assertIn("teste-campo", ws.term_view.toPlainText())
+        self.assertFalse(ws.promote("F-0101", "CONFIRMADO", "in_game_test", "vi no menu"))  # sem confirmar (P3)
+        self.assertTrue(ws.promote("F-0101", "CONFIRMADO", "in_game_test", "vi no menu", confirmed=True))
+        self.assertEqual(ws.findings_db.status("F-0101"), "CONFIRMADO")
+        self.assertFalse(ws.promote("F-0012", "PROVAVEL", "in_game_test", ""))  # promover sem evidência
+        self.assertTrue(ws.promote("F-0011", "HIPOTESE", "in_game_test", ""))   # rebaixar sempre pode
+        ws.register_tims()
+        self.assertTrue(ws.findings_db.find(subject="graphics.tim"))
+        ws.tabs.setCurrentIndex(1)
+        ws.tim_list.setCurrentRow(0)
+        self.assertTrue(ws.recolor_test().image.exists())
+        repo = json_status(Path(__file__).resolve().parent.parent / "research" / "findings" / "SLUS-00940-USA.json")
+        self.assertEqual(repo["F-0011"], "PROVAVEL")  # repositório intocado
 
     def test_sem_perfil_so_formatos_genericos(self):
         other = Path(self.tmp.name) / "outro.bin"

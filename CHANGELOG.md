@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## Marco 6 — Modo Pesquisa
+- `research/profiler.py`: estatísticas de cada posição (u8 e u16le): mín/máx, distintos, zeros,
+  múltiplos de 10 e 5, crescimento dentro dos grupos, notas
+- `research/gabarito.py`: CSV `id,atributo,valor,fonte` (id numérico ou nome), casamento por posição
+  e tipo com limite configurável; proposta vira PROVAVEL com `statistical_match` (coluna constante só
+  HIPOTESE; nunca CONFIRMADO)
+- `research/testbin.py`: BIN de teste com um único campo (base + patches, sem os changesets) em
+  `testes/`, recolorir TIM em magenta, findings G-xxxx dos TIMs e DESCONHECIDO "sem TIM solto"
+- FindingsDB: `add_finding`, `next_id`, `find`
+- Aba Pesquisa (só com o Modo Pesquisa ligado) e diálogo P3 (CONFIRMADO exige confirmação do usuário)
+- CLI `perfilar`, `gabarito [--registrar]`, `teste-campo`
+
 ## Marco 5 — interface PySide6
 - AppState com MainMenuState e EditorWorkspaceState (QStackedWidget); `python3 -m inverse_engine.ui.app`
 - Menu inicial: iniciar projeto, abrir imagem (mostra âncoras), abrir projeto, opções (tema e fonte),

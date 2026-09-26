@@ -15,6 +15,9 @@
     python -m inverse_engine.cli projeto exportar PROJ [--sobrescrever]    # BIN + BPS + CUE + relatório (P2)
     python -m inverse_engine.cli registro IMAGEM weapons 182               # registro com fronteiras dos campos
     python -m inverse_engine.cli reproduzir RELATORIO.relatorio.json       # remonta e compara o SHA-256
+    python -m inverse_engine.cli perfilar IMAGEM weapons                   # estatísticas por posição (Pesquisa)
+    python -m inverse_engine.cli gabarito IMAGEM weapons GABARITO.csv [--registrar]
+    python -m inverse_engine.cli teste-campo PROJ weapons 182 0x0C u16le 999   # BIN de teste em testes/
 """
 from __future__ import annotations
 
@@ -198,6 +201,56 @@ def cmd_reproduzir(args) -> int:
     return 0 if ok else 1
 
 
+def _profile_for(image_path, perfis):
+    image = RomImage.open(image_path)
+    profiles = RomProfile.load_all(perfis)
+    match = next((m for m in match_profiles(image, profiles) if m.applies), None)
+    if match is None:
+        raise SystemExit("Nenhum perfil se aplica a esta imagem.")
+    return image, next(p for p in profiles if p.profile_id == match.profile_id)
+
+
+def cmd_perfilar(args) -> int:
+    from inverse_engine.research import profiler
+    image, profile = _profile_for(args.imagem, args.perfis)
+    t = profile.table(args.tabela)
+    data = image.read_file(t.file)
+    print(f"{'pos':<5} {'tipo':<6} {'mín':>6} {'máx':>6} {'dist':>5} {'zeros':>6} {'×10':>5} {'cresce':>7}  campo / notas")
+    for st in profiler.profile(t, data):
+        print(f"0x{st.offset:02X}  {st.type:<6} {st.min:>6} {st.max:>6} {st.distinct:>5} {st.zeros:>6.0%} "
+              f"{st.mult10:>5.0%} {st.monotonic:>7.0%}  {st.field or ''} {st.notes()}")
+    return 0
+
+
+def cmd_gabarito(args) -> int:
+    from inverse_engine.research import gabarito
+    image, profile = _profile_for(args.imagem, args.perfis)
+    t = profile.table(args.tabela)
+    data = image.read_file(t.file)
+    rows = gabarito.load(Path(args.csv), t, data)
+    db = _findings_for(profile.profile_id)
+    props = gabarito.match(t, data, rows, args.limite)
+    for p in props:
+        print(p.detail() + (f"  (já existe {p.existing})" if p.existing else ""))
+    if not props:
+        print("Nenhuma posição bate com o gabarito.")
+    if args.registrar and props:
+        for p in props:
+            f = gabarito.apply(db, t, p)
+            print(f"registrado: {f['id']} {f['status']}")
+        db.save()
+    return 0
+
+
+def cmd_teste_campo(args) -> int:
+    from inverse_engine.core.project import Project
+    from inverse_engine.research import testbin
+    p = Project.load(args.projeto)
+    res = testbin.value_test(p, args.tabela, args.id, args.posicao, args.tipo, args.valor, overwrite=args.sobrescrever)
+    print(f"{res.image}\n{res.instructions}")
+    return 0
+
+
 def _findings_for(profile_id: str) -> FindingsDB:
     p = FINDINGS / f"{profile_id}.json"
     return FindingsDB.load(p) if p.exists() else FindingsDB({"findings": []})
@@ -243,6 +296,28 @@ def main(argv=None) -> int:
     rp = sub.add_parser("reproduzir", help="remonta a saída a partir do relatório e compara o hash")
     rp.add_argument("relatorio")
     rp.set_defaults(func=cmd_reproduzir)
+    pf = sub.add_parser("perfilar", help="estatísticas de cada posição do registro (Modo Pesquisa)")
+    pf.add_argument("imagem")
+    pf.add_argument("tabela")
+    pf.add_argument("--perfis", default=str(PROFILES))
+    pf.set_defaults(func=cmd_perfilar)
+    gb = sub.add_parser("gabarito", help="casa um CSV id,atributo,valor,fonte com as posições do registro")
+    gb.add_argument("imagem")
+    gb.add_argument("tabela")
+    gb.add_argument("csv")
+    gb.add_argument("--limite", type=float, default=0.9)
+    gb.add_argument("--registrar", action="store_true", help="grava as propostas nos findings")
+    gb.add_argument("--perfis", default=str(PROFILES))
+    gb.set_defaults(func=cmd_gabarito)
+    tc = sub.add_parser("teste-campo", help="BIN de teste com um único campo alterado")
+    tc.add_argument("projeto")
+    tc.add_argument("tabela")
+    tc.add_argument("id", type=lambda s: int(s, 0))
+    tc.add_argument("posicao", type=lambda s: int(s, 0))
+    tc.add_argument("tipo", choices=["u8", "s8", "u16le", "s16le"])
+    tc.add_argument("valor", type=lambda s: int(s, 0))
+    tc.add_argument("--sobrescrever", action="store_true")
+    tc.set_defaults(func=cmd_teste_campo)
     args = ap.parse_args(argv)
     return args.func(args)
 

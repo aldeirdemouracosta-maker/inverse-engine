@@ -83,6 +83,33 @@ class FindingsDB:
             out[f["status"]] += 1
         return out
 
+    def next_id(self, prefix: str) -> str:
+        """Próximo id livre com o prefixo (F, S, G, R…), começando em 0100 para não colidir com os iniciais."""
+        nums = [int(k.split("-")[1]) for k in self.findings if k.startswith(prefix + "-") and k.split("-")[1].isdigit()]
+        return f"{prefix}-{max([99] + nums) + 1:04d}"
+
+    def find(self, **match) -> list[dict]:
+        """Findings cujos campos batem com todos os pares dados (ex.: file=..., record_offset=...)."""
+        return [f for f in self.findings.values() if all(f.get(k) == v for k, v in match.items())]
+
+    def add_finding(self, prefix: str, subject: str, interpretation: str, status: str = "HIPOTESE",
+                    evidence: list[dict] | None = None, **extra) -> dict:
+        """Novo finding. Só HIPOTESE ou DESCONHECIDO sem evidência; PROVAVEL/CONFIRMADO exigem evidência."""
+        if status not in STATES:
+            raise FindingError(f"estado inválido: {status}")
+        evidence = [dict(e, date=e.get("date") or _today()) for e in (evidence or [])]
+        for e in evidence:
+            if e["kind"] not in EVIDENCE_KINDS:
+                raise FindingError(f"tipo de evidência desconhecido: {e['kind']}")
+        if status in ("PROVAVEL", "CONFIRMADO") and not evidence:
+            raise FindingError(f"finding {status} exige evidência")
+        fid = self.next_id(prefix)
+        f = {"id": fid, "subject": subject, **extra, "interpretation": interpretation, "status": status,
+             "evidence": evidence, "profiles": self.meta.get("profile") and [self.meta["profile"]] or [],
+             "history": [{"date": _today(), "from": None, "to": status, "why": "criado"}]}
+        self.findings[fid] = f
+        return f
+
     def add_evidence(self, finding_id: str, kind: str, detail: str, date: str | None = None) -> dict:
         if kind not in EVIDENCE_KINDS:
             raise FindingError(f"tipo de evidência desconhecido: {kind}")

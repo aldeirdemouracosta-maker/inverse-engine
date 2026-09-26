@@ -1,7 +1,7 @@
 # Prompt para o Codex — terminar o Inverse Engine (VH2 Studio como primeiro perfil)
 
 Repositório: https://github.com/aldeirdemouracosta-maker/inverse-engine (branch `main`).
-**Os marcos 1 a 5 (núcleo + interface PySide6) estão prontos. Comece pelo marco 6 (Modo Pesquisa).**
+**Os marcos 1 a 6 (núcleo, interface PySide6 e Modo Pesquisa) estão prontos. Comece pelo marco 7 (habilidades/magias).**
 Trabalhe **nesse repositório**, marco por marco, com um commit por marco e todos os testes passando.
 
 ## 0. Leia antes de começar
@@ -29,12 +29,12 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
 - O código da **v1.1 do VH2 Studio foi perdido** (`vh2_disc.py`, `vh2_tim.py`, `ppf.py`, `bps_patch.py`,
   `vh2_rom_editor.py`, `vh2_studio.py` e as 137 verificações). **Não procure por ele.** EDC/ECC, PPF, BPS,
   TIM/PNG, camadas, ChangeSet, projeto, exportação, relatório e hexa já foram reescritos nos marcos 2 a 4;
-  a interface PySide6 foi feita no marco 5; o resto (Modo Pesquisa etc.) é escrito nos marcos 6 em diante.
+  a interface PySide6 no marco 5 e o Modo Pesquisa no marco 6; o resto é escrito nos marcos 7 em diante.
 - `legado/VH2-PS1-Studio-v3.0/` guarda a v3.0-alpha (Tkinter + Pillow + IPS). **Não altere essa pasta** e não a
   importe no núcleo. Pode servir de referência de ideias: busca por valor/hex com curinga `??`/texto
   Shift-JIS, ChangeSet com undo/redo, prévia de aparência (direções, animação, GIF), prévia de falas com
   retrato. O que for aproveitado é **reescrito** no núcleo novo (sem Pillow) e na interface PySide6.
-- Os **marcos 1 a 5 estão prontos** (ver 0.2): 128 testes passando. Continue do **marco 6**.
+- Os **marcos 1 a 6 estão prontos** (ver 0.2): 140 testes passando. Continue do **marco 7**.
 
 ### 0.1 Estrutura do repositório
 ```
@@ -42,14 +42,14 @@ inverse_engine/
   cli.py                      modo terminal: abrir | tabela | findings  (python -m inverse_engine.cli)
   core/      rom_image.py profile.py patch_stack.py paths.py changeset.py project.py export.py hexview.py (prontos)
   formats/   disc.py psexe.py edc_ecc.py ppf.py bps.py tim.py png.py (prontos)  tmd.py vab.py memcard.py (fazer)
-  research/  findings.py                        (pronto)   profiler.py gabarito.py cheats.py (fazer)
+  research/  findings.py profiler.py gabarito.py testbin.py (prontos)  cheats.py (fazer)
   assistant/ rules.py ollama.py context.py      (fazer)
   scripting/ api.py console.py                  (fazer)
   ui/        app.py main_menu.py workspace.py worker.py theme.py terminal.py recent.py themes/*.json (prontos)
 profiles/SLUS-00940-USA.json          perfil (armas + habilidades)
 research/findings/SLUS-00940-USA.json findings iniciais (F-0001…F-0016, S-0001…S-0003, S-0010…S-0021)
 tests/  fixture_cd.py  test_rom_image.py  test_profile_anchors.py  test_profile_data.py
-        test_edc_ecc.py  test_ppf_bps.py  test_tim_png.py  test_patch_stack.py  test_changeset_project.py  test_export_hexview.py  test_ui.py
+        test_edc_ecc.py  test_ppf_bps.py  test_tim_png.py  test_patch_stack.py  test_changeset_project.py  test_export_hexview.py  test_ui.py  test_research.py
 legado/ VH2-PS1-Studio-v3.0 (somente referência)
 .github/workflows/tests.yml  (ubuntu-latest, Python 3.10 e 3.12, QT_QPA_PLATFORM=offscreen, PySide6)
 ```
@@ -132,8 +132,20 @@ Rodar os testes: `python -m unittest discover -s tests -t .` (sempre com `-t .`;
   todo controle com `setAccessibleName`; todo botão ligado a uma ação; toda ação registra `log(texto, comando)`
   com o comando equivalente do CLI (acrescente o subcomando no `cli.py`); tarefas longas em `Task`;
   `tests/test_ui.py` já confere nomes acessíveis e botões sem ação — acrescente os fluxos novos lá.
-  Ainda não feito na interface: aba Assistente (marco 12), Modo Pesquisa completo (marco 6), .iso de 2048 bytes
-  (só BIN 2352, CUE e executável avulso são aceitos).
+  Ainda não feito na interface: aba Assistente (marco 12), .iso de 2048 bytes (só BIN 2352, CUE e executável
+  avulso são aceitos).
+- Modo Pesquisa (marco 6): `research/profiler.py` `profile(tabela, dados, skip={0})` → `ColumnStats(offset, type,
+  min, max, distinct, zeros, mult10, mult5, monotonic, field)` + `.notes()`; `research/gabarito.py` `load(csv|Path,
+  tabela, dados)` → `Row(index, attribute, value, source)` (id numérico ou nome), `match(tabela, dados, linhas,
+  threshold=0.9, min_records=3)` → `Proposal(... offset, type, matched, total, distinct, sources, existing)`,
+  `apply(db, tabela, proposta)` (PROVAVEL com statistical_match; constante → HIPOTESE; nunca CONFIRMADO);
+  `research/testbin.py` `value_test(projeto, tabela, índice, posição, tipo, valor)`, `field_test(projeto, arquivo,
+  offset, bytes, nome)`, `recolor_test(projeto, arquivo, offset_tim)` (BIN em `<projeto>/testes/`, base + patches,
+  sem changesets), `register_tims(db, encontrados)`; `FindingsDB.add_finding(prefixo, assunto, interpretação,
+  status, evidências, **campos)`, `next_id`, `find(**campos)`. Aba "Pesquisa" do workspace (habilitada só com o
+  Modo Pesquisa ligado): perfilador, gabarito com propostas marcáveis, marcar hipótese, BIN de teste, findings,
+  promover/rebaixar (P3: `Workspace.promote(id, estado, tipo, detalhe, confirmed)`). Nos testes, use uma cópia
+  dos findings (`project.findings_dir = pasta_temporária`): **testes nunca gravam em `research/findings/`**.
 
 Se precisar mudar uma dessas APIs, adapte os testes **mantendo a mesma verificação**. Nunca apague nem
 enfraqueça um teste.
@@ -732,9 +744,16 @@ exportado é distribuído pelo projeto.
    calculando a razão de contraste das cores do tema); navegação completa por teclado; `setAccessibleName` em todos
    os controles (teste percorre os widgets); nenhum botão sem ação (teste percorre os botões); abre com
    `QT_QPA_PLATFORM=offscreen` no CI.
-6. **Modo Pesquisa** (seção 10). Aceite: perfilador acha uma coluna plantada; gabarito CSV sintético gera finding
+6. ~~Modo Pesquisa~~ **pronto** (seção 10). Aceite: perfilador acha uma coluna plantada; gabarito CSV sintético gera finding
    `PROVAVEL` com `statistical_match`; BIN de teste com **um** campo alterado; recolorir para teste gera BIN.
-7. **Tabelas genéricas + habilidades/magias** (seção 11), depois armaduras. Aceite: armas continuam passando em
+7. **Tabelas genéricas + habilidades/magias** (seção 11), depois armaduras. A tabela genérica já existe
+   (`TableSpec`, aba Tabelas com seletor, perfilador e gabarito funcionam para qualquer tabela do perfil). Falta:
+   importação de nomes com a hipótese de ponteiros mostrando amostras e a divergência 204 × 203 antes de gravar
+   (nada gravado sem confirmação); edição de texto do mesmo tamanho ou menor (NUL) com recusa do maior; edição de
+   byte cru das habilidades pela aba Tabelas no Modo Pesquisa (hoje só pela aba Pesquisa → BIN de teste);
+   armaduras (0x16FA4, 26 bytes, 158 registros, nomes em 0x16D2C, hash f51ae2dc…) no perfil com os findings
+   iniciais (geometria PROVAVEL pelo hash do LVCP; campos DESCONHECIDO). Use `make_slus(size=...)` maior para
+   caber as tabelas de habilidades e armaduras nos testes. Aceite: armas continuam passando em
    todos os testes com o código genérico; habilidades aparecem com campos DESCONHECIDOS, editáveis só como byte
    cru no Modo Pesquisa; divergência 204 × 203 exibida e nada gravado sem confirmação; texto maior que o original
    recusado; nada promovido sem evidência.

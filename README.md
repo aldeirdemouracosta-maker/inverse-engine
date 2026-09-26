@@ -51,6 +51,9 @@ python3 -m inverse_engine.cli projeto mostrar ~/vh2/"Rebalance 2026.vh2proj.json
 python3 -m inverse_engine.cli projeto hexa ~/vh2/"Rebalance 2026.vh2proj.json"
 python3 -m inverse_engine.cli projeto exportar ~/vh2/"Rebalance 2026.vh2proj.json"
 python3 -m inverse_engine.cli reproduzir ~/vh2/saida/"Rebalance 2026.relatorio.json"
+python3 -m inverse_engine.cli perfilar "Vandal Hearts II (USA).cue" weapons
+python3 -m inverse_engine.cli gabarito "Vandal Hearts II (USA).cue" weapons meu_gabarito.csv
+python3 -m inverse_engine.cli teste-campo ~/vh2/"Rebalance 2026.vh2proj.json" weapons 182 0x0C u16le 999
 python3 -m unittest discover -s tests -t .                           # testes (sintéticos)
 ```
 
@@ -63,8 +66,9 @@ python3 -m unittest discover -s tests -t .                           # testes (s
 | 3. ChangeSet com undo/redo + arquivo de projeto | feito: operações com antes/depois/origem/finding, grupos desfeitos de uma vez, `.vh2proj.json` com caminhos relativos, hashes conferidos ao reabrir (P4), salvar/reabrir idêntico |
 | 4. Validation + Export + relatório + hexa | feito: BIN + BPS + CUE + relatório .md/.json, conferências (reler BIN, BPS na original, EDC/ECC, original intocado), sobrescrita só com confirmação, relatório reproduz a saída, hexa de escritas/registros/TIM |
 | 5. Casca PySide6 (menu inicial + workspace) | feito: menu inicial com recentes e estatísticas, workspace com painéis (arquivos por conteúdo, inspetor hexa, camadas e conflitos, histórico, console + terminal equivalente), abas Tabelas/Gráficos/Exportar/Sistema, portões P2 e P4, temas simples e fantasia (WCAG AA), teclado e nomes acessíveis |
-| 6. Modo Pesquisa | próximo |
-| 7–14 | pendentes |
+| 6. Modo Pesquisa | feito: perfilador de colunas, gabarito CSV (propostas PROVAVEL com statistical_match, revisadas antes de gravar), marcar hipótese, BIN de teste com um campo, recolorir TIM em magenta, findings G-xxxx, promoção com evidência (P3) |
+| 7. Tabelas genéricas + habilidades/magias | próximo |
+| 8–14 | pendentes |
 
 `legado/VH2-PS1-Studio-v3.0/` guarda a versão 3.0-alpha (Tkinter) sem alterações, como
 referência. O código da v1.1 do VH2 Studio foi perdido; EDC/ECC, PPF, BPS e TIM/PNG foram reescritos

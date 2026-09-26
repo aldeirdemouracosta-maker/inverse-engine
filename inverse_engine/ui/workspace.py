@@ -14,15 +14,18 @@ from pathlib import Path
 from PySide6.QtCore import QByteArray, Qt, Signal
 from PySide6.QtGui import QAction, QFont, QKeySequence, QPixmap
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QDockWidget,
-                               QFileDialog, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QMainWindow,
-                               QMessageBox, QPlainTextEdit, QPushButton, QTableWidget, QTableWidgetItem,
-                               QTabWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
+                               QFileDialog, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QListWidget,
+                               QListWidgetItem, QMainWindow, QMessageBox, QPlainTextEdit, QPushButton, QSpinBox,
+                               QTableWidget, QTableWidgetItem, QTabWidget, QTreeWidget, QTreeWidgetItem,
+                               QVBoxLayout, QWidget)
 
 from inverse_engine.core import filetypes, hexview
 from inverse_engine.core.export import export, output_paths, ExportError
 from inverse_engine.core.patch_stack import GraphicEdit, PatchError
 from inverse_engine.core.project import Project, ProjectError
 from inverse_engine.formats import tim
+from inverse_engine.research import gabarito, profiler, testbin
+from inverse_engine.research.findings import EVIDENCE_KINDS, STATES, FindingError
 from inverse_engine.ui import recent, terminal
 from inverse_engine.ui.worker import Task, run_sync
 
@@ -119,6 +122,7 @@ class Workspace(QMainWindow):
         h.addWidget(self.preview, 1)
         v.addLayout(h)
         self.tabs.addTab(w, "&Gráficos")
+        self._build_research_tab()
         # Exportar
         w = QWidget()
         v = QVBoxLayout(w)
@@ -140,6 +144,77 @@ class Workspace(QMainWindow):
         v.addWidget(_btn("Detectar ferramentas", self.detect_tools))
         v.addWidget(self.system_info)
         self.tabs.addTab(w, "&Sistema")
+
+    def _build_research_tab(self) -> None:
+        w = QWidget()
+        v = QVBoxLayout(w)
+        v.addWidget(QLabel("Modo Pesquisa: estatísticas, gabarito e testes. Nada aqui entra na saída final."))
+        top = QHBoxLayout()
+        self.research_table = QComboBox()
+        self.research_table.setAccessibleName("Tabela pesquisada")
+        top.addWidget(QLabel("Tabela:"))
+        top.addWidget(self.research_table)
+        top.addWidget(_btn("Perfilar &colunas", self.run_profiler, "Estatísticas de cada posição do registro"))
+        top.addWidget(_btn("Importar gabarito CSV…", self.import_gabarito, "id,atributo,valor,fonte"))
+        top.addStretch(1)
+        v.addLayout(top)
+        h = QHBoxLayout()
+        self.profile_grid = QTableWidget()
+        self.profile_grid.setAccessibleName("Perfil das colunas")
+        self.profile_grid.verticalHeader().setVisible(False)
+        h.addWidget(self.profile_grid, 3)
+        col = QVBoxLayout()
+        col.addWidget(QLabel("Propostas do gabarito (marque e registre):"))
+        self.proposals = QListWidget()
+        self.proposals.setAccessibleName("Propostas do gabarito")
+        col.addWidget(self.proposals)
+        col.addWidget(_btn("Registrar propostas marcadas", self.apply_proposals, "Viram PROVAVEL com statistical_match"))
+        h.addLayout(col, 2)
+        v.addLayout(h, 2)
+
+        row = QHBoxLayout()
+        box = QGroupBox("Marcar bytes como hipótese / BIN de teste")
+        form = QFormLayout(box)
+        self.r_index = QSpinBox()
+        self.r_index.setAccessibleName("Registro")
+        self.r_index.setRange(0, 9999)
+        self.r_offset = QSpinBox()
+        self.r_offset.setAccessibleName("Posição no registro")
+        self.r_offset.setRange(0, 255)
+        self.r_offset.setDisplayIntegerBase(16)
+        self.r_offset.setPrefix("0x")
+        self.r_type = QComboBox()
+        self.r_type.setAccessibleName("Tipo")
+        self.r_type.addItems(["u8", "s8", "u16le", "s16le"])
+        self.r_value = QSpinBox()
+        self.r_value.setAccessibleName("Valor de teste")
+        self.r_value.setRange(-32768, 65535)
+        self.r_text = QLineEdit()
+        self.r_text.setAccessibleName("Interpretação da hipótese")
+        self.r_text.setPlaceholderText("ex.: custo de MP (hipótese)")
+        form.addRow("Registro:", self.r_index)
+        form.addRow("Posição:", self.r_offset)
+        form.addRow("Tipo:", self.r_type)
+        form.addRow("Valor de teste:", self.r_value)
+        form.addRow("Interpretação:", self.r_text)
+        bb = QHBoxLayout()
+        bb.addWidget(_btn("Marcar como hipótese", self.mark_hypothesis))
+        bb.addWidget(_btn("Gerar BIN de teste", self.make_test_bin, "Altera só este campo; vai para testes/"))
+        form.addRow(bb)
+        row.addWidget(box, 1)
+        box = QGroupBox("Findings")
+        fv = QVBoxLayout(box)
+        self.findings_list = QListWidget()
+        self.findings_list.setAccessibleName("Findings do perfil")
+        fv.addWidget(self.findings_list)
+        fb = QHBoxLayout()
+        fb.addWidget(_btn("Promover/rebaixar… (P3)", self.promote_dialog))
+        fb.addWidget(_btn("Registrar TIMs como findings", self.register_tims))
+        fb.addWidget(_btn("Recolorir TIM (magenta) para teste", self.recolor_test, "Usa o TIM selecionado em Gráficos"))
+        fv.addLayout(fb)
+        row.addWidget(box, 1)
+        v.addLayout(row, 2)
+        self.research_tab_index = self.tabs.addTab(w, "Pes&quisa")
 
     def _dock(self, title: str, widget: QWidget, area) -> QDockWidget:
         d = QDockWidget(title, self)
@@ -245,6 +320,12 @@ class Workspace(QMainWindow):
             self.table_combo.addItems(list(prof.tables))
         self.table_combo.blockSignals(False)
         self.tabs.setTabEnabled(0, prof is not None)
+        self.findings_db = project.findings()
+        self.research_table.clear()
+        if prof:
+            self.research_table.addItems(list(prof.tables))
+        self._update_research_enabled()
+        self.fill_findings()
         self.fill_table()
         self.refresh_all()
         layout = project.ui.get("layout")
@@ -296,8 +377,14 @@ class Workspace(QMainWindow):
         self.log(f"{len(nodes)} entradas no CD", terminal.abrir(self.image.path))
 
     # ------------------------------------------------------------------ tabelas
+    def _update_research_enabled(self) -> None:
+        on = bool(self.project and self.project.research_mode and self.project.profile_id)
+        self.tabs.setTabEnabled(self.research_tab_index, on)
+        self.tabs.setTabToolTip(self.research_tab_index, "" if on else "Ligue o Modo Pesquisa na aba Tabelas")
+
     def _toggle_research(self, on: bool) -> None:
         self.project.research_mode = on
+        self._update_research_enabled()
         self.project.save()
         self.log(f"Modo Pesquisa {'ligado' if on else 'desligado'}")
         self.fill_table()
@@ -577,6 +664,173 @@ class Workspace(QMainWindow):
                  terminal.projeto(cmd, self.project.path))
         self.fill_table()
         self.refresh_all()
+
+    # ------------------------------------------------------------------ pesquisa
+    def _rtable(self):
+        t = self.project.profile().table(self.research_table.currentText())
+        return t, (self.image.read_file(t.file) if self.image.disc else self.image.data)
+
+    def fill_findings(self) -> None:
+        self.findings_list.clear()
+        if not getattr(self, "findings_db", None):
+            return
+        for f in self.findings_db.findings.values():
+            it = QListWidgetItem(f"{f['id']:<7} {f['status']:<12} {f['subject']}")
+            it.setData(Qt.UserRole, f["id"])
+            it.setToolTip(f.get("interpretation", ""))
+            self.findings_list.addItem(it)
+
+    def _save_findings(self) -> None:
+        self.findings_db.save()
+        self.fill_findings()
+        self.fill_table()
+
+    def run_profiler(self) -> None:
+        t, data = self._rtable()
+        stats = profiler.profile(t, data)
+        headers = ["pos", "tipo", "mín", "máx", "distintos", "zeros", "×10", "×5", "cresce", "campo", "notas"]
+        self.profile_grid.setColumnCount(len(headers))
+        self.profile_grid.setHorizontalHeaderLabels(headers)
+        self.profile_grid.setRowCount(len(stats))
+        for r, s in enumerate(stats):
+            vals = [f"0x{s.offset:02X}", s.type, str(s.min), str(s.max), str(s.distinct), f"{s.zeros:.0%}",
+                    f"{s.mult10:.0%}", f"{s.mult5:.0%}", f"{s.monotonic:.0%}", s.field or "", s.notes()]
+            for c, val in enumerate(vals):
+                it = QTableWidgetItem(val)
+                it.setFlags(it.flags() & ~Qt.ItemIsEditable)
+                self.profile_grid.setItem(r, c, it)
+        self.profile_grid.resizeColumnsToContents()
+        self.log(f"Perfilador: {t.name}, {len(stats)} colunas analisadas",
+                 f"{terminal.CLI} perfilar {terminal.q(self.image.path)} {t.name}")
+
+    def import_gabarito(self, source: str | None = None) -> None:
+        if source is None:
+            source, _ = QFileDialog.getOpenFileName(self, "Gabarito CSV", "", "CSV (*.csv)")
+            if not source:
+                return
+        t, data = self._rtable()
+        try:
+            rows = gabarito.load(Path(source), t, data)
+        except (ValueError, KeyError) as e:
+            self.log(f"Gabarito recusado: {e}")
+            return
+        self._proposals = gabarito.match(t, data, rows, findings=self.findings_db)
+        self.proposals.clear()
+        for p in self._proposals:
+            it = QListWidgetItem(p.detail() + (f" — já existe {p.existing}" if p.existing else ""))
+            it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
+            it.setCheckState(Qt.Checked if p.distinct >= 2 else Qt.Unchecked)
+            self.proposals.addItem(it)
+        self.log(f"Gabarito: {len(rows)} linha(s), {len(self._proposals)} proposta(s)",
+                 f"{terminal.CLI} gabarito {terminal.q(self.image.path)} {t.name} {terminal.q(source)}")
+
+    def apply_proposals(self) -> None:
+        t, _ = self._rtable()
+        done = []
+        for k, p in enumerate(getattr(self, "_proposals", [])):
+            if self.proposals.item(k).checkState() == Qt.Checked:
+                f = gabarito.apply(self.findings_db, t, p)
+                done.append(f"{f['id']} {f['status']}")
+        if done:
+            self._save_findings()
+            self.log("Registrado: " + ", ".join(done))
+        else:
+            self.log("Nenhuma proposta marcada")
+
+    def mark_hypothesis(self) -> None:
+        t, _ = self._rtable()
+        off, typ = self.r_offset.value(), self.r_type.currentText()
+        size = 2 if "16" in typ else 1
+        if off + size > t.stride:
+            self.log("Recusado: passa do fim do registro")
+            return
+        prefix = (t.finding or "R-").split("-")[0]
+        f = self.findings_db.add_finding(prefix, f"{t.name}.byte_0x{off:02X}", self.r_text.text() or "hipótese",
+                                         file=t.file, record_offset=f"0x{off:X}", size=size, type=typ)
+        self._save_findings()
+        self.log(f"Hipótese registrada: {f['id']} {f['subject']}")
+
+    def make_test_bin(self, overwrite: bool = False):
+        t, _ = self._rtable()
+        try:
+            res = testbin.value_test(self.project, t.name, self.r_index.value(), self.r_offset.value(),
+                                     self.r_type.currentText(), self.r_value.value(), overwrite=overwrite)
+        except (testbin.TestBinError, ValueError, IndexError, PatchError, ProjectError) as e:
+            self.log(f"BIN de teste recusada: {e}")
+            return None
+        self.log(f"BIN de teste: {res.image}\n{res.instructions}",
+                 f"{terminal.CLI} teste-campo {terminal.q(self.project.path)} {t.name} {self.r_index.value()} "
+                 f"0x{self.r_offset.value():X} {self.r_type.currentText()} {self.r_value.value()}")
+        return res
+
+    def recolor_test(self):
+        cur = self._current_tim()
+        if cur is None:
+            self.log("Selecione um TIM na aba Gráficos primeiro")
+            return None
+        path, info, _ = cur
+        try:
+            res = testbin.recolor_test(self.project, path, info.offset, overwrite=True)
+        except (testbin.TestBinError, tim.TimError) as e:
+            self.log(f"Recusado: {e}")
+            return None
+        self.log(f"BIN de teste (magenta): {res.image}\n{res.instructions}")
+        return res
+
+    def register_tims(self) -> None:
+        if not self.tims:
+            self.scan_tims(sync=True)
+        new = testbin.register_tims(self.findings_db, self.tims)
+        self._save_findings()
+        self.log(f"{len(new)} finding(s) de gráficos registrados")
+
+    def promote(self, finding_id: str, status: str, kind: str, detail: str, confirmed: bool = False) -> bool:
+        """Portão P3: CONFIRMADO só com a confirmação do usuário do que viu (ex.: print do emulador)."""
+        if status == "CONFIRMADO" and not confirmed:
+            self.log("CONFIRMADO exige a sua confirmação do que viu no jogo (P3)")
+            return False
+        try:
+            ev = {"kind": kind, "detail": detail} if detail else None
+            self.findings_db.set_status(finding_id, status, detail or "rebaixado", ev)
+        except FindingError as e:
+            self.log(f"Recusado: {e}")
+            return False
+        self._save_findings()
+        self.log(f"{finding_id} → {status}")
+        return True
+
+    def promote_dialog(self) -> None:
+        item = self.findings_list.currentItem()
+        if item is None:
+            self.log("Selecione um finding")
+            return
+        fid = item.data(Qt.UserRole)
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f"Mudar estado de {fid} (P3)")
+        form = QFormLayout(dlg)
+        st = QComboBox()
+        st.setAccessibleName("Novo estado")
+        st.addItems(list(STATES))
+        st.setCurrentText(self.findings_db.status(fid))
+        kind = QComboBox()
+        kind.setAccessibleName("Tipo de evidência")
+        kind.addItems(sorted(EVIDENCE_KINDS))
+        kind.setCurrentText("in_game_test")
+        detail = QLineEdit()
+        detail.setAccessibleName("Evidência nova")
+        detail.setPlaceholderText("o que foi visto (obrigatório para promover)")
+        seen = QCheckBox("Confirmo que vi o resultado no jogo/emulador")
+        seen.setAccessibleName("Confirmo que vi o resultado")
+        form.addRow("Estado:", st)
+        form.addRow("Evidência:", kind)
+        form.addRow("Detalhe:", detail)
+        form.addRow(seen)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bb.accepted.connect(dlg.accept)
+        bb.rejected.connect(dlg.reject)
+        form.addRow(bb)
+        if dlg.exec() == QDialog.Accepted:
+            self.promote(fid, st.currentText(), kind.currentText(), detail.text().strip(), seen.isChecked())
 
     # ------------------------------------------------------------------ exportação (P2)
     def review_text(self) -> str:
