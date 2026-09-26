@@ -3,6 +3,8 @@
     python -m inverse_engine.cli abrir  IMAGEM          # arquivos do CD + âncoras de todos os perfis
     python -m inverse_engine.cli tabela IMAGEM weapons   # registros da tabela (perfil que se aplica)
     python -m inverse_engine.cli findings                # resumo do banco de descobertas
+    python -m inverse_engine.cli tims   IMAGEM           # TIMs encontrados em todos os arquivos
+    python -m inverse_engine.cli ppf    PATCH.ppf [--imagem IMAGEM]   # registros e bloco de conferência
 """
 from __future__ import annotations
 
@@ -76,6 +78,34 @@ def cmd_findings(args) -> int:
     return 0
 
 
+def cmd_tims(args) -> int:
+    from inverse_engine.formats import tim
+    image = RomImage.open(args.imagem)
+    found = tim.scan_image(image)
+    for path, info in found:
+        print(f"{path:<32} 0x{info.offset:08X} {info.size:>7} bytes  {info.describe()}")
+    print(f"{len(found)} TIM(s)")
+    return 0
+
+
+def cmd_ppf(args) -> int:
+    from inverse_engine.formats import ppf
+    p = ppf.parse(Path(args.patch).read_bytes())
+    print(f"PPF{p.version}.0  {p.description!r}  registros: {len(p.records)}  "
+          f"bytes: {sum(len(d) for _, d in p.records)}")
+    if p.file_id:
+        print(f"FILE_ID.DIZ: {p.file_id}")
+    if args.imagem:
+        image = RomImage.open(args.imagem)
+        why = p.check_block(image.data)
+        print("Bloco de conferência: " + ("confere" if why is None else why))
+        if image.disc is not None:
+            system = sum(1 for off, d in p.records for k in range(len(d))
+                         if image.bin_offset_to_user(off + k) is None)
+            print(f"Bytes em sync/cabeçalho/EDC/ECC (ignorados, recalculados no fim): {system}")
+    return 0
+
+
 def _findings_for(profile_id: str) -> FindingsDB:
     p = FINDINGS / f"{profile_id}.json"
     return FindingsDB.load(p) if p.exists() else FindingsDB({"findings": []})
@@ -97,6 +127,13 @@ def main(argv=None) -> int:
     f = sub.add_parser("findings", help="resumo do banco de descobertas")
     f.add_argument("--pasta", default=str(FINDINGS))
     f.set_defaults(func=cmd_findings)
+    m = sub.add_parser("tims", help="procura TIMs em todos os arquivos da imagem")
+    m.add_argument("imagem")
+    m.set_defaults(func=cmd_tims)
+    pp = sub.add_parser("ppf", help="mostra um PPF e confere o bloco contra a imagem")
+    pp.add_argument("patch")
+    pp.add_argument("--imagem")
+    pp.set_defaults(func=cmd_ppf)
     args = ap.parse_args(argv)
     return args.func(args)
 

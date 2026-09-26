@@ -33,6 +33,8 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
 python3 -m inverse_engine.cli abrir  "Vandal Hearts II (USA).cue"   # arquivos + âncoras
 python3 -m inverse_engine.cli tabela "Vandal Hearts II (USA).cue" weapons --id 182
 python3 -m inverse_engine.cli findings
+python3 -m inverse_engine.cli tims   "Vandal Hearts II (USA).cue"
+python3 -m inverse_engine.cli ppf    "take_turns.ppf" --imagem "Vandal Hearts II (USA).cue"
 python3 -m unittest discover -s tests -t .                           # testes (sintéticos)
 ```
 
@@ -41,11 +43,12 @@ python3 -m unittest discover -s tests -t .                           # testes (s
 | Marco | Situação |
 |---|---|
 | 1. RomImage + RomProfile + findings | feito: BIN/CUE/executável avulso, ISO9660 com subpastas, Form 2 marcado, offset ↔ LBA ↔ BIN, âncoras, tabelas genéricas, política de edição por estado |
-| 2. PatchStack + conflitos + EDC/ECC | próximo |
-| 3–14 | pendentes |
+| 2. EDC/ECC + PPF + BPS + TIM/PNG + PatchStack + conflitos | feito: EDC/ECC conferido contra o ECMA-130, PPF 1/2/3, BPS, TIM/PNG sem Pillow, camadas ppf/bps_import/changeset/graphics/raw, conflitos só em dados de usuário, EDC/ECC recalculado no fim |
+| 3. ChangeSet com undo/redo + arquivo de projeto | próximo |
+| 4–14 | pendentes |
 
 `legado/VH2-PS1-Studio-v3.0/` guarda a versão 3.0-alpha (Tkinter) sem alterações, como
-referência. O código da v1.1 do VH2 Studio (EDC/ECC, PPF, BPS, TIM sem Pillow) foi perdido;
-essas partes são reescritas nos marcos seguintes, com testes sintéticos novos.
+referência. O código da v1.1 do VH2 Studio foi perdido; EDC/ECC, PPF, BPS e TIM/PNG foram reescritos
+no marco 2, com testes sintéticos novos.
 Não existe `items.json` para migrar: os findings iniciais foram registrados direto em
 `research/findings/SLUS-00940-USA.json`.
