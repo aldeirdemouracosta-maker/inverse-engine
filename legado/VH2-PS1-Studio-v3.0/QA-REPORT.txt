@@ -1,0 +1,45 @@
+PS1 ARCHAEOLOGY STUDIO — VH2 PROFILE v3.0-alpha
+QA REPORT
+
+Objetivo do Gate:
+- nenhum botão Tkinter sem callback;
+- núcleo de scan/ChangeSet/build testável sem GUI;
+- fonte original nunca modificada durante build de teste;
+- TIM decoder exercitado com amostra sintética;
+- interface inicializável em display virtual.
+
+TESTES EXECUTADOS
+1. Python syntax compile
+2. pytest core
+3. Tkinter/Xvfb smoke test
+4. recursive TButton command audit
+
+RESULTADO MEDIDO
+- pytest: 3 passed
+- TButton encontrados: 50
+- TButton sem command: 0
+
+TESTES DE NÚCLEO COBERTOS
+- scan u16 little-endian
+- scan hex pattern
+- staging de alteração
+- validação ChangeSet
+- build de cópia sem modificar original
+- geração IPS
+- encode/decode scalar
+- scan e decode TIM 16bpp sintético
+
+LIMITES CONSCIENTES
+- Scene Preview salva projeto local, mas não escreve mapa VH2 sem schema comprovado.
+- Persuasion/Deployment não possuem botão nesta build porque ainda exigem engenharia reversa/injeção de código real.
+- Magic editor é deliberadamente schema-driven; não contém offsets inventados.
+- Preview visual não substitui teste runtime no emulador.
+- Build executável por PyInstaller depende de instalação local das dependências de build.
+
+STATUS
+CORE: PASS
+BUTTON WIRING: PASS
+HEADLESS GUI INIT: PASS
+VH2 FULL ROM RUNTIME TEST: NOT RUN (ROM não fornecida)
+PCSX-RUNTIME INTEGRATION: NOT INCLUDED IN THIS BUILD
+LINUX ONEFILE EXECUTABLE: BLOCKED — ambiente de QA sem acesso ao índice PyPI para instalar PyInstaller. O script gerar_aplicativo.py foi incluído e a build não foi marcada como PASS.

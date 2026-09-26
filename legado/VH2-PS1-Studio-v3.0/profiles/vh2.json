@@ -1,0 +1,25 @@
+{
+  "name": "Vandal Hearts II",
+  "profile_version": 1,
+  "records": {
+    "item": {
+      "label": "Item",
+      "record_size": 22,
+      "fields": [
+        {"name":"id","label":"ID","rel_offset":0,"size":2,"dtype":"u16le","evidence":"LEGACY-HYPOTHESIS"},
+        {"name":"name","label":"Nome (8 bytes)","rel_offset":2,"size":8,"dtype":"str:shift_jis","evidence":"LEGACY-HYPOTHESIS"},
+        {"name":"attack","label":"Ataque","rel_offset":10,"size":2,"dtype":"u16le","evidence":"PROVEN"},
+        {"name":"field_0c","label":"Campo +0x0C","rel_offset":12,"size":2,"dtype":"u16le","evidence":"LEGACY-HYPOTHESIS"},
+        {"name":"field_0e","label":"Campo +0x0E","rel_offset":14,"size":1,"dtype":"u8","evidence":"LEGACY-HYPOTHESIS"},
+        {"name":"field_0f","label":"Campo +0x0F","rel_offset":15,"size":1,"dtype":"u8","evidence":"LEGACY-HYPOTHESIS"},
+        {"name":"field_10","label":"Campo +0x10","rel_offset":16,"size":4,"dtype":"u32le","evidence":"LEGACY-HYPOTHESIS"},
+        {"name":"field_14","label":"Campo +0x14","rel_offset":20,"size":2,"dtype":"u16le","evidence":"LEGACY-HYPOTHESIS"}
+      ]
+    },
+    "magic": {
+      "label": "Magia/Habilidade",
+      "record_size": 0,
+      "fields": []
+    }
+  }
+}
