@@ -322,6 +322,29 @@ class UiTest(unittest.TestCase):
         copy_path = ws.save_memcard(str(root / "novo.mcr"))
         self.assertEqual(len(memcard.MemCard(copy_path.read_bytes()).saves()), 2)
 
+    def test_audio_vab(self):
+        from inverse_engine.formats import wav as wavmod
+        from tests.fixture_cd import CdBuilder
+        from tests.test_vab import build_vab, block, RAMP, RAMP_PCM
+        root = Path(self.tmp.name)
+        b = root / "som.bin"
+        b.write_bytes(CdBuilder().build({"SOUND/SE.VAB": build_vab([block(RAMP), block([3] * 28)])}))
+        self.app.start_project(b, root / "p6", "Som")
+        ws = self.app.workspace
+        self.app.show_menu()
+        self.app.open_tab("audio_tab_index")
+        self.assertEqual(ws.tabs.currentIndex(), ws.audio_tab_index)
+        ws.scan_vabs()
+        self.assertEqual(ws.vab_list.count(), 1)
+        ws.vab_list.setCurrentRow(0)
+        self.assertEqual(ws.sample_list.count(), 2)
+        ws.sample_list.setCurrentRow(0)
+        self.assertFalse(ws.wave_view.pixmap().isNull())
+        out = ws.export_wav(str(root / "a.wav"))
+        self.assertEqual(wavmod.read(out.read_bytes())[0], RAMP_PCM)
+        self.assertEqual(len(ws.export_all_wav(str(root / "wavs"))), 2)
+        self.assertIn("vab", ws.term_view.toPlainText())
+
     def test_sem_perfil_so_formatos_genericos(self):
         other = Path(self.tmp.name) / "outro.bin"
         from tests.fixture_cd import CdBuilder

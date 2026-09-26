@@ -23,6 +23,7 @@
     python -m inverse_engine.cli projeto nome PROJ weapons 182 "Novo"      # mesmo tamanho ou menor
     python -m inverse_engine.cli cheat IMAGEM weapons 182 attack 45 [--pesquisa] [--cht saida.cht]
     python -m inverse_engine.cli memcard CARTAO.mcr [--exportar N saida.mcs] [--importar save.mcs --saida novo.mcr]
+    python -m inverse_engine.cli vab IMAGEM [--exportar ARQUIVO_NO_CD OFFSET PASTA]   # bancos de som → WAV
 """
 from __future__ import annotations
 
@@ -313,6 +314,27 @@ def cmd_memcard(args) -> int:
     return 0
 
 
+def cmd_vab(args) -> int:
+    from inverse_engine.formats import vab, wav
+    image = RomImage.open(args.imagem)
+    found = vab.scan_image(image)
+    for path, v in found:
+        print(f"{path:<32} 0x{v.offset:08X}  programas {len(v.programs):>3}  amostras {v.sample_count:>3}  "
+              f"{'VB junto' if v.inline_vb else 'VB em outro arquivo (hipótese)'}")
+    print(f"{len(found)} banco(s) de som")
+    if args.exportar:
+        name, off, folder = args.exportar
+        v = next((x for p, x in found if p.upper() == name.upper() and x.offset == int(off, 0)), None)
+        if v is None:
+            raise ValueError(f"nenhum VAB em {name} {off}")
+        Path(folder).mkdir(parents=True, exist_ok=True)
+        for i in range(v.sample_count):
+            out = Path(folder) / f"{Path(name).name}_{v.offset:X}_{i:03d}.wav"
+            out.write_bytes(wav.to_bytes(v.decode(i), vab.DEFAULT_RATE))
+        print(f"{v.sample_count} WAV em {folder}")
+    return 0
+
+
 def _findings_for(profile_id: str) -> FindingsDB:
     p = FINDINGS / f"{profile_id}.json"
     return FindingsDB.load(p) if p.exists() else FindingsDB({"findings": []})
@@ -404,6 +426,10 @@ def main(argv=None) -> int:
     mc.add_argument("--importar")
     mc.add_argument("--saida")
     mc.set_defaults(func=cmd_memcard)
+    vb = sub.add_parser("vab", help="lista bancos de som VAB e exporta amostras em WAV")
+    vb.add_argument("imagem")
+    vb.add_argument("--exportar", nargs=3, metavar=("ARQUIVO", "OFFSET", "PASTA"))
+    vb.set_defaults(func=cmd_vab)
     args = ap.parse_args(argv)
     try:
         return args.func(args)

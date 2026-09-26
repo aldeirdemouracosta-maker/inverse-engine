@@ -36,6 +36,7 @@ class App(QMainWindow):
         self.menu.open_project.connect(self.open_project)
         self.menu.options.connect(self.options)
         self.menu.cheats.connect(self.open_cheats)
+        self.menu.audio.connect(lambda: self.open_tab("audio_tab_index"))
         self.menu.quit.connect(self.close)
         self.workspace.back.connect(self.show_menu)
         self.apply_theme()
@@ -144,14 +145,17 @@ class App(QMainWindow):
         except (ProjectError, ValueError, OSError) as e:
             QMessageBox.warning(self, "Não foi possível abrir o projeto", str(e))
 
-    def open_cheats(self, path=None) -> None:
-        """Cheats dependem do perfil: abre (ou reabre) um projeto e vai direto para a aba Cheats."""
+    def open_tab(self, attr: str, path=None) -> None:
+        """Botões do menu que levam a uma aba: usa o projeto aberto ou pede um projeto."""
         if path is None and self.workspace.project is not None:
             self.stack.setCurrentWidget(self.workspace)
         else:
             self.open_project(path)
         if self.stack.currentWidget() is self.workspace:
-            self.workspace.tabs.setCurrentIndex(self.workspace.cheats_tab_index)
+            self.workspace.tabs.setCurrentIndex(getattr(self.workspace, attr))
+
+    def open_cheats(self, path=None) -> None:
+        self.open_tab("cheats_tab_index", path)
 
     def closeEvent(self, event) -> None:
         if self.stack.currentWidget() is self.workspace:

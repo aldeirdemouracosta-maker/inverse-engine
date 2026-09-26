@@ -58,6 +58,7 @@ python3 -m inverse_engine.cli nomes "Vandal Hearts II (USA).cue" skills
 python3 -m inverse_engine.cli projeto nome ~/vh2/"Rebalance 2026.vh2proj.json" weapons 182 "Rebel"
 python3 -m inverse_engine.cli cheat "Vandal Hearts II (USA).cue" weapons 182 attack 45 --pesquisa
 python3 -m inverse_engine.cli memcard ~/cartoes/epsxe000.mcr
+python3 -m inverse_engine.cli vab "Vandal Hearts II (USA).cue" --exportar SOUND/SE.VAB 0x0 ~/vh2/wav
 python3 -m unittest discover -s tests -t .                           # testes (sintéticos)
 ```
 
@@ -73,8 +74,9 @@ python3 -m unittest discover -s tests -t .                           # testes (s
 | 6. Modo Pesquisa | feito: perfilador de colunas, gabarito CSV (propostas PROVAVEL com statistical_match, revisadas antes de gravar), marcar hipótese, BIN de teste com um campo, recolorir TIM em magenta, findings G-xxxx, promoção com evidência (P3) |
 | 7. Tabelas genéricas + habilidades/magias | feito: armas, habilidades e armaduras com o mesmo código; análise de ponteiros de nomes (204 × 203 exibido, hipóteses de alinhamento, nada gravado sem confirmar); troca de nome do mesmo tamanho ou menor; bytes crus editáveis no Modo Pesquisa |
 | 8. Cheats + memory card | feito: GameShark 80/30/D0 a partir de campos do perfil (endereço de RAM só com evidência; sem ela, só experimental no Modo Pesquisa), export .cht/.txt; memory card .mcr: listar, ícone, exportar/importar .mcs com checksums |
-| 9. Áudio VAB (só leitura) | próximo |
-| 10–14 | pendentes |
+| 9. Áudio VAB (só leitura) | feito: VH (programas, tons, amostras) + VB, SPU-ADPCM (5 filtros, flags de laço), WAV 16 bits, procura em todos os arquivos, VB separado marcado como hipótese, aba Áudio com forma de onda |
+| 10. Modelos TMD (só leitura) | próximo |
+| 11–14 | pendentes |
 
 `legado/VH2-PS1-Studio-v3.0/` guarda a versão 3.0-alpha (Tkinter) sem alterações, como
 referência. O código da v1.1 do VH2 Studio foi perdido; EDC/ECC, PPF, BPS e TIM/PNG foram reescritos

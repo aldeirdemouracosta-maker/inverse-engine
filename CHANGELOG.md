@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Marco 9 — áudio VAB (só leitura)
+- `formats/adpcm.py`: SPU-ADPCM (shift, 5 filtros, saturação em 16 bits, flags de fim/laço)
+- `formats/vab.py`: VH "pBAV" (programas, tons com nota central e ADSR, tabela de tamanhos), VB junto ou
+  em outro arquivo (`attach_vb`), procura em todos os arquivos (Form 2 ignorado)
+- `formats/wav.py`: WAV PCM 16 bits com o módulo `wave`
+- Aba Áudio: bancos, amostras, forma de onda, tocar (se houver QtMultimedia), exportar WAV;
+  botão "Áudio e texturas" do menu ativado
+- CLI `vab [--exportar ARQUIVO OFFSET PASTA]`
+
 ## Marco 8 — cheats e memory card
 - `research/cheats.py`: códigos GameShark (80 16 bits, 30 8 bits, D0 condicional; 16 bits em endereço
   ímpar vira dois 30) a partir de um campo do perfil; endereço de RAM de `record_ram` só com finding

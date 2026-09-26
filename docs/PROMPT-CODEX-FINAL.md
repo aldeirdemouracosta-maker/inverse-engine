@@ -1,7 +1,7 @@
 # Prompt para o Codex — terminar o Inverse Engine (VH2 Studio como primeiro perfil)
 
 Repositório: https://github.com/aldeirdemouracosta-maker/inverse-engine (branch `main`).
-**Os marcos 1 a 8 estão prontos (núcleo, interface PySide6, Modo Pesquisa, tabelas genéricas, cheats e memory card). Comece pelo marco 9 (áudio VAB).**
+**Os marcos 1 a 9 estão prontos (núcleo, interface PySide6, Modo Pesquisa, tabelas genéricas, cheats, memory card e áudio VAB). Comece pelo marco 10 (modelos TMD).**
 Trabalhe **nesse repositório**, marco por marco, com um commit por marco e todos os testes passando.
 
 ## 0. Leia antes de começar
@@ -29,19 +29,19 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
 - O código da **v1.1 do VH2 Studio foi perdido** (`vh2_disc.py`, `vh2_tim.py`, `ppf.py`, `bps_patch.py`,
   `vh2_rom_editor.py`, `vh2_studio.py` e as 137 verificações). **Não procure por ele.** EDC/ECC, PPF, BPS,
   TIM/PNG, camadas, ChangeSet, projeto, exportação, relatório e hexa já foram reescritos nos marcos 2 a 4;
-  a interface PySide6 no marco 5, o Modo Pesquisa no marco 6 as tabelas genéricas no marco 7 e cheats/memory card no marco 8; o resto é escrito nos marcos 9 em diante.
+  a interface PySide6 no marco 5, o Modo Pesquisa no marco 6 as tabelas genéricas no marco 7, cheats/memory card no marco 8 e áudio VAB no marco 9; o resto é escrito nos marcos 10 em diante.
 - `legado/VH2-PS1-Studio-v3.0/` guarda a v3.0-alpha (Tkinter + Pillow + IPS). **Não altere essa pasta** e não a
   importe no núcleo. Pode servir de referência de ideias: busca por valor/hex com curinga `??`/texto
   Shift-JIS, ChangeSet com undo/redo, prévia de aparência (direções, animação, GIF), prévia de falas com
   retrato. O que for aproveitado é **reescrito** no núcleo novo (sem Pillow) e na interface PySide6.
-- Os **marcos 1 a 8 estão prontos** (ver 0.2): 165 testes passando. Continue do **marco 9**.
+- Os **marcos 1 a 9 estão prontos** (ver 0.2): 175 testes passando. Continue do **marco 10**.
 
 ### 0.1 Estrutura do repositório
 ```
 inverse_engine/
   cli.py                      modo terminal: abrir | tabela | findings  (python -m inverse_engine.cli)
   core/      rom_image.py profile.py patch_stack.py paths.py changeset.py project.py export.py hexview.py (prontos)
-  formats/   disc.py psexe.py edc_ecc.py ppf.py bps.py tim.py png.py memcard.py (prontos)  vab.py tmd.py wav.py (fazer)
+  formats/   disc.py psexe.py edc_ecc.py ppf.py bps.py tim.py png.py memcard.py adpcm.py vab.py wav.py (prontos)  tmd.py (fazer)
   research/  findings.py profiler.py gabarito.py testbin.py names.py cheats.py (prontos)
   assistant/ rules.py ollama.py context.py      (fazer)
   scripting/ api.py console.py                  (fazer)
@@ -49,7 +49,7 @@ inverse_engine/
 profiles/SLUS-00940-USA.json          perfil (armas + habilidades)
 research/findings/SLUS-00940-USA.json findings iniciais (F-0001…F-0016, S-0001…S-0003, S-0010…S-0021)
 tests/  fixture_cd.py  test_rom_image.py  test_profile_anchors.py  test_profile_data.py
-        test_edc_ecc.py  test_ppf_bps.py  test_tim_png.py  test_patch_stack.py  test_changeset_project.py  test_export_hexview.py  test_ui.py  test_research.py  test_tables_names.py  test_cheats_memcard.py
+        test_edc_ecc.py  test_ppf_bps.py  test_tim_png.py  test_patch_stack.py  test_changeset_project.py  test_export_hexview.py  test_ui.py  test_research.py  test_tables_names.py  test_cheats_memcard.py  test_vab.py
 legado/ VH2-PS1-Studio-v3.0 (somente referência)
 .github/workflows/tests.yml  (ubuntu-latest, Python 3.10 e 3.12, QT_QPA_PLATFORM=offscreen, PySide6)
 ```
@@ -164,6 +164,13 @@ Rodar os testes: `python -m unittest discover -s tests -t .` (sempre com `-t .`;
   palette, checksum_ok)`, `free_slots`, `bad_checksums`, `export_mcs`, `import_mcs`, `icon_png`, `to_bytes`.
   Abas "Cheats" e "Memory Card" no workspace; `App.open_cheats()` (botão do menu). O CLI mostra erros sem
   traceback (`Erro: …`, código 2) — mantenha as mensagens do núcleo em português.
+- Áudio (marco 9): `formats/adpcm.py` `decode(bytes, stop_at_end)`, `loop_info`; `formats/vab.py` `parse(dados, offset)`
+  → `Vab(offset, version, program_count, sample_count, programs, tones[Tone(center, sample…)], sample_sizes, vh_size,
+  vb, inline_vb, sample_bytes(i), decode(i), attach_vb(vb))`, `scan`, `scan_image`; `formats/wav.py` `to_bytes(pcm,
+  rate)`, `read(bytes)`. Aba "Áudio" (`Workspace.scan_vabs`, `export_wav`, `export_all_wav`, `play_sample`);
+  `App.open_tab(nome_do_atributo_da_aba)` para botões do menu que levam a uma aba. `tests/test_vab.py` tem
+  `build_vab(amostras)` e `block(nibbles, shift, filt, flags)` para fixtures. O botão "Modelos 3D" do menu é o
+  único ainda desativado: ative-o no marco 10.
 
 Se precisar mudar uma dessas APIs, adapte os testes **mantendo a mesma verificação**. Nunca apague nem
 enfraqueça um teste.
@@ -785,12 +792,18 @@ exportado é distribuído pelo projeto.
    aba "Memory Card" no workspace (ative o botão do menu). Aceite: código gerado a partir de um campo do perfil bate com o endereço RAM
    esperado (`record_ram` no perfil, só quando houver evidência; senão o gerador recusa); memory card sintético
    listado, exportado e reimportado com checksum correto.
-9. **Áudio VAB** (só leitura). `formats/vab.py`: VH ("pBAV", programas, tons, tamanhos das amostras) + VB
+9. ~~Áudio VAB~~ **pronto** (só leitura). `formats/vab.py`: VH ("pBAV", programas, tons, tamanhos das amostras) + VB
    (SPU-ADPCM, ver 0.4); `formats/wav.py` com `wave` da biblioteca padrão (PCM 16 bits); procurar VAB em todos os
    arquivos (e VH/VB separados quando o VB vier em outro arquivo: registrar como HIPOTESE); aba "Áudio" com lista
    de programas/amostras, forma de onda (QPainter), tocar (QtMultimedia é opcional: sem ele, só exportar WAV) e
    exportar; ative o botão "Áudio e texturas" do menu. Aceite: VAB sintético decodificado para WAV igual ao esperado.
-10. **Modelos TMD** (só leitura). Aceite: TMD sintético com contagem certa de vértices/faces.
+10. **Modelos TMD** (só leitura). `formats/tmd.py` (ver 0.4): objetos, vértices, normais, primitivas (triângulos e
+    quadriláteros, planos/Gouraud, com e sem textura: UV, CBA/TSB → página de textura e paleta na VRAM);
+    `scan`/`scan_image` como os outros formatos; exportar OBJ (+ MTL apontando para o PNG do TIM cuja posição de
+    VRAM bater com a TSB/CBA, quando houver); aba "Modelos 3D" com visualizador `QOpenGLWidget` (girar/zoom com
+    mouse e teclado) — se OpenGL não estiver disponível (CI offscreen), mostre uma projeção em QPainter
+    (wireframe) para o teste não depender de GPU; ative o botão "Modelos 3D" do menu. Lembre: o VH2 usa sprites
+    nos personagens, então é normal não achar TMD no jogo (isso não é erro). Aceite: TMD sintético com contagem certa de vértices/faces.
 11. **Automação** (seção 13). Aceite: com imagem sintética, abrir o projeto gera o relatório "O que o app
     encontrou" sem nenhum clique; um plano de 20 regras vira um ChangeSet revisado em uma tela (P1); a automação
     do emulador é testada com executor simulado (PCSX-Redux real opcional).

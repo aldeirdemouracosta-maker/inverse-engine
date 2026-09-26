@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import QByteArray, Qt, Signal
-from PySide6.QtGui import QAction, QFont, QKeySequence, QPixmap
+from PySide6.QtGui import QAction, QColor, QFont, QKeySequence, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog, QDialogButtonBox, QDockWidget,
                                QFileDialog, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QListWidget,
                                QListWidgetItem, QMainWindow, QMessageBox, QPlainTextEdit, QPushButton, QSpinBox,
@@ -24,7 +24,7 @@ from inverse_engine.core.export import export, output_paths, ExportError
 from inverse_engine.core.patch_stack import GraphicEdit, PatchError
 from inverse_engine.core.project import Project, ProjectError
 from inverse_engine.formats import tim
-from inverse_engine.formats import memcard
+from inverse_engine.formats import memcard, vab, wav
 from inverse_engine.research import cheats, gabarito, profiler, testbin
 from inverse_engine.research.findings import EVIDENCE_KINDS, STATES, FindingError
 from inverse_engine.ui import recent, terminal
@@ -127,6 +127,7 @@ class Workspace(QMainWindow):
         self._build_research_tab()
         self._build_cheats_tab()
         self._build_memcard_tab()
+        self._build_audio_tab()
         # Exportar
         w = QWidget()
         v = QVBoxLayout(w)
@@ -290,6 +291,35 @@ class Workspace(QMainWindow):
         self.card = None
         self.card_path = None
         self.tabs.addTab(w, "&Memory Card")
+
+    def _build_audio_tab(self) -> None:
+        w = QWidget()
+        v = QVBoxLayout(w)
+        row = QHBoxLayout()
+        row.addWidget(_btn("Procurar &VAB", self.scan_vabs, "Bancos de som (pBAV) em todos os arquivos"))
+        row.addWidget(_btn("Exportar WAV…", self.export_wav))
+        row.addWidget(_btn("Exportar todas as amostras…", self.export_all_wav))
+        self.play_btn = _btn("Tocar", self.play_sample, "Precisa do QtMultimedia")
+        row.addWidget(self.play_btn)
+        row.addStretch(1)
+        v.addLayout(row)
+        h = QHBoxLayout()
+        self.vab_list = QListWidget()
+        self.vab_list.setAccessibleName("Bancos de som encontrados")
+        self.vab_list.currentRowChanged.connect(lambda _r: self._vab_selected())
+        h.addWidget(self.vab_list, 2)
+        self.sample_list = QListWidget()
+        self.sample_list.setAccessibleName("Amostras do banco")
+        self.sample_list.currentRowChanged.connect(lambda _r: self._sample_selected())
+        h.addWidget(self.sample_list, 1)
+        v.addLayout(h, 1)
+        self.wave_view = QLabel("")
+        self.wave_view.setMinimumHeight(140)
+        self.wave_view.setAccessibleName("Forma de onda")
+        v.addWidget(self.wave_view)
+        self.vabs: list = []
+        self._effect = None
+        self.audio_tab_index = self.tabs.addTab(w, "Á&udio")
 
     def _dock(self, title: str, widget: QWidget, area) -> QDockWidget:
         d = QDockWidget(title, self)
@@ -1157,6 +1187,115 @@ class Workspace(QMainWindow):
         target.write_bytes(self.card.to_bytes())
         self.log(f"Memory card gravado: {target}")
         return target
+
+    # ------------------------------------------------------------------ áudio
+    def scan_vabs(self) -> None:
+        self.vabs = vab.scan_image(self.image)
+        self.vab_list.clear()
+        for path, v in self.vabs:
+            vb = "VB junto" if v.inline_vb else "VB em outro arquivo (hipótese)"
+            self.vab_list.addItem(f"{path} 0x{v.offset:X} — {len(v.programs)} programa(s), "
+                                  f"{v.sample_count} amostra(s), {vb}")
+        self.log(f"{len(self.vabs)} banco(s) de som", f"{terminal.CLI} vab {terminal.q(self.image.path)}")
+
+    def _current_vab(self):
+        r = self.vab_list.currentRow()
+        return self.vabs[r] if 0 <= r < len(self.vabs) else None
+
+    def _vab_selected(self) -> None:
+        self.sample_list.clear()
+        cur = self._current_vab()
+        if cur is None:
+            return
+        _, v = cur
+        for i, size in enumerate(v.sample_sizes):
+            tones = [t for t in v.tones if t.sample == i + 1]
+            note = f", nota central {tones[0].center}" if tones else ""
+            self.sample_list.addItem(f"amostra {i}: {size} bytes ({size // 16 * 28} pontos){note}")
+
+    def _samples(self):
+        cur = self._current_vab()
+        r = self.sample_list.currentRow()
+        if cur is None or r < 0:
+            return None
+        return cur[1].decode(r)
+
+    def _sample_selected(self) -> None:
+        try:
+            pcm = self._samples()
+        except vab.VabError as e:
+            self.wave_view.setText(str(e))
+            return
+        if not pcm:
+            return
+        wdt, hgt = max(400, self.wave_view.width()), 140
+        pix = QPixmap(wdt, hgt)
+        pix.fill(QColor(self.palette().window().color()))
+        painter = QPainter(pix)
+        painter.setPen(QPen(QColor(self.palette().windowText().color()), 1))
+        step = max(1, len(pcm) // wdt)
+        mid = hgt // 2
+        for x in range(min(wdt, len(pcm) // step)):
+            chunk = pcm[x * step:(x + 1) * step]
+            painter.drawLine(x, mid - max(chunk) * mid // 32768, x, mid - min(chunk) * mid // 32768)
+        painter.end()
+        self.wave_view.setPixmap(pix)
+
+    def export_wav(self, target: str | None = None) -> Path | None:
+        try:
+            pcm = self._samples()
+        except vab.VabError as e:
+            self.log(f"Recusado: {e}")
+            return None
+        if pcm is None:
+            self.log("Selecione um banco e uma amostra")
+            return None
+        if target is None:
+            target, _ = QFileDialog.getSaveFileName(self, "Exportar WAV", "amostra.wav", "WAV (*.wav)")
+            if not target:
+                return None
+        Path(target).write_bytes(wav.to_bytes(pcm, vab.DEFAULT_RATE))
+        self.log(f"WAV exportado: {target} (44100 Hz; a altura no jogo depende da nota central do tom)")
+        return Path(target)
+
+    def export_all_wav(self, folder: str | None = None) -> list[Path]:
+        cur = self._current_vab()
+        if cur is None:
+            self.log("Selecione um banco")
+            return []
+        if folder is None:
+            folder = QFileDialog.getExistingDirectory(self, "Pasta para os WAV")
+            if not folder:
+                return []
+        path, v = cur
+        out = []
+        Path(folder).mkdir(parents=True, exist_ok=True)
+        try:
+            for i in range(v.sample_count):
+                f = Path(folder) / f"{Path(path).name}_{v.offset:X}_{i:03d}.wav"
+                f.write_bytes(wav.to_bytes(v.decode(i), vab.DEFAULT_RATE))
+                out.append(f)
+        except vab.VabError as e:
+            self.log(f"Recusado: {e}")
+        self.log(f"{len(out)} WAV exportado(s) em {folder}",
+                 f"{terminal.CLI} vab {terminal.q(self.image.path)} --exportar {terminal.q(path)} 0x{v.offset:X} "
+                 f"{terminal.q(folder)}")
+        return out
+
+    def play_sample(self) -> None:
+        try:
+            from PySide6.QtMultimedia import QSoundEffect
+            from PySide6.QtCore import QUrl
+        except ImportError:
+            self.log("QtMultimedia não está disponível: exporte o WAV e toque em outro programa")
+            return
+        import tempfile
+        tmp = Path(tempfile.gettempdir()) / "inverse_engine_amostra.wav"
+        if self.export_wav(str(tmp)) is None:
+            return
+        self._effect = QSoundEffect(self)
+        self._effect.setSource(QUrl.fromLocalFile(str(tmp)))
+        self._effect.play()
 
     # ------------------------------------------------------------------ exportação (P2)
     def review_text(self) -> str:
