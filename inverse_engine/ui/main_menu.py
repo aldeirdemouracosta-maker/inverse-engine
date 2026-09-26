@@ -16,6 +16,7 @@ class MainMenu(QWidget):
     open_image = Signal()
     open_project = Signal(object)     # Path ou None (pergunta)
     options = Signal()
+    cheats = Signal()
     quit = Signal()
 
     def __init__(self, parent=None):
@@ -55,7 +56,7 @@ class MainMenu(QWidget):
         button("imagem", "Abrir i&magem", "Abrir .bin, .cue ou executável e conferir as âncoras",
                self.open_image.emit)
         button("projeto", "Abrir &projeto", "Abrir um arquivo .vh2proj.json", lambda: self.open_project.emit(None))
-        button("cheats", "Criar &cheats", "Códigos GameShark a partir do perfil", disabled_reason="chega no marco 8")
+        button("cheats", "Criar &cheats", "Códigos GameShark a partir do perfil (abre um projeto)", self.cheats.emit)
         button("modelos", "Modelos &3D", "Visualizador TMD", disabled_reason="chega no marco 10")
         button("audio", "Á&udio e texturas", "Áudio VAB e texturas", disabled_reason="chega no marco 9")
         button("opcoes", "&Opções", "Tema e tamanho da fonte", self.options.emit)

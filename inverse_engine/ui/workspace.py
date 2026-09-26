@@ -24,7 +24,8 @@ from inverse_engine.core.export import export, output_paths, ExportError
 from inverse_engine.core.patch_stack import GraphicEdit, PatchError
 from inverse_engine.core.project import Project, ProjectError
 from inverse_engine.formats import tim
-from inverse_engine.research import gabarito, profiler, testbin
+from inverse_engine.formats import memcard
+from inverse_engine.research import cheats, gabarito, profiler, testbin
 from inverse_engine.research.findings import EVIDENCE_KINDS, STATES, FindingError
 from inverse_engine.ui import recent, terminal
 from inverse_engine.ui.worker import Task, run_sync
@@ -124,6 +125,8 @@ class Workspace(QMainWindow):
         v.addLayout(h)
         self.tabs.addTab(w, "&Gráficos")
         self._build_research_tab()
+        self._build_cheats_tab()
+        self._build_memcard_tab()
         # Exportar
         w = QWidget()
         v = QVBoxLayout(w)
@@ -216,6 +219,77 @@ class Workspace(QMainWindow):
         row.addWidget(box, 1)
         v.addLayout(row, 2)
         self.research_tab_index = self.tabs.addTab(w, "Pes&quisa")
+
+    def _build_cheats_tab(self) -> None:
+        w = QWidget()
+        v = QVBoxLayout(w)
+        v.addWidget(QLabel("Cheats GameShark para testar hipóteses no emulador. O cheat nunca substitui o patch final."))
+        form = QFormLayout()
+        self.c_table = QComboBox()
+        self.c_table.setAccessibleName("Tabela do cheat")
+        self.c_table.currentTextChanged.connect(self._fill_cheat_fields)
+        self.c_index = QSpinBox()
+        self.c_index.setAccessibleName("Registro do cheat")
+        self.c_index.setRange(0, 9999)
+        self.c_field = QComboBox()
+        self.c_field.setAccessibleName("Campo do cheat")
+        self.c_value = QSpinBox()
+        self.c_value.setAccessibleName("Valor do cheat")
+        self.c_value.setRange(-2147483647, 2147483647)
+        self.c_cond = QCheckBox("Só quando o valor atual for:")
+        self.c_cond.setAccessibleName("Usar condição D0")
+        self.c_cond_value = QSpinBox()
+        self.c_cond_value.setAccessibleName("Valor da condição")
+        self.c_cond_value.setRange(0, 65535)
+        form.addRow("Tabela:", self.c_table)
+        form.addRow("Registro:", self.c_index)
+        form.addRow("Campo:", self.c_field)
+        form.addRow("Valor:", self.c_value)
+        cond = QHBoxLayout()
+        cond.addWidget(self.c_cond)
+        cond.addWidget(self.c_cond_value)
+        form.addRow(cond)
+        v.addLayout(form)
+        row = QHBoxLayout()
+        row.addWidget(_btn("Gerar código", self.add_cheat))
+        row.addWidget(_btn("Gerar das alterações", self.cheats_from_changes, "Um código por campo alterado"))
+        row.addWidget(_btn("Limpar", self.clear_cheats))
+        row.addWidget(_btn("Exportar .cht (DuckStation)…", lambda: self.export_cheats("cht")))
+        row.addWidget(_btn("Exportar .txt…", lambda: self.export_cheats("txt")))
+        row.addStretch(1)
+        v.addLayout(row)
+        self.cheat_view = QPlainTextEdit()
+        self.cheat_view.setReadOnly(True)
+        self.cheat_view.setFont(MONO)
+        self.cheat_view.setAccessibleName("Códigos gerados")
+        v.addWidget(self.cheat_view)
+        self.cheat_list: list = []
+        self.cheats_tab_index = self.tabs.addTab(w, "C&heats")
+
+    def _build_memcard_tab(self) -> None:
+        w = QWidget()
+        v = QVBoxLayout(w)
+        row = QHBoxLayout()
+        row.addWidget(_btn("Abrir memory card…", self.open_memcard, ".mcr / .mcd de 128 KiB"))
+        row.addWidget(_btn("Exportar save (.mcs)…", self.export_save))
+        row.addWidget(_btn("Importar save (.mcs)…", self.import_save))
+        row.addWidget(_btn("Salvar cópia do cartão…", self.save_memcard, "Nunca sobrescreve o original sem confirmar"))
+        row.addStretch(1)
+        v.addLayout(row)
+        h = QHBoxLayout()
+        self.mc_list = QListWidget()
+        self.mc_list.setAccessibleName("Saves do memory card")
+        self.mc_list.currentRowChanged.connect(lambda _r: self._save_selected())
+        h.addWidget(self.mc_list, 2)
+        self.mc_icon = QLabel("")
+        self.mc_icon.setAlignment(Qt.AlignCenter)
+        self.mc_icon.setMinimumSize(96, 96)
+        self.mc_icon.setAccessibleName("Ícone do save")
+        h.addWidget(self.mc_icon, 1)
+        v.addLayout(h)
+        self.card = None
+        self.card_path = None
+        self.tabs.addTab(w, "&Memory Card")
 
     def _dock(self, title: str, widget: QWidget, area) -> QDockWidget:
         d = QDockWidget(title, self)
@@ -327,6 +401,13 @@ class Workspace(QMainWindow):
             self.research_table.addItems(list(prof.tables))
         self._update_research_enabled()
         self.fill_findings()
+        self.c_table.blockSignals(True)
+        self.c_table.clear()
+        if prof:
+            self.c_table.addItems([n for n, t in prof.tables.items() if t.fields])
+        self.c_table.blockSignals(False)
+        self._fill_cheat_fields()
+        self.tabs.setTabEnabled(self.cheats_tab_index, prof is not None)
         self.fill_table()
         self.refresh_all()
         layout = project.ui.get("layout")
@@ -929,6 +1010,153 @@ class Workspace(QMainWindow):
         form.addRow(bb)
         if dlg.exec() == QDialog.Accepted:
             self.promote(fid, st.currentText(), kind.currentText(), detail.text().strip(), seen.isChecked())
+
+    # ------------------------------------------------------------------ cheats
+    def _fill_cheat_fields(self, *_):
+        self.c_field.clear()
+        prof = self.project.profile() if self.project else None
+        if prof and self.c_table.currentText():
+            self.c_field.addItems(list(prof.table(self.c_table.currentText()).fields))
+
+    def _cheat(self, table: str, index: int, field: str, value: int, only_if=None):
+        t = self.project.profile().table(table)
+        data = self.image.read_file(t.file) if self.image.disc else self.image.data
+        return cheats.field_cheat(t, data, index, field, value, self.findings_db, self.project.research_mode, only_if)
+
+    def _show_cheats(self) -> None:
+        self.cheat_view.setPlainText(cheats.to_text(self.cheat_list))
+
+    def add_cheat(self):
+        try:
+            c = self._cheat(self.c_table.currentText(), self.c_index.value(), self.c_field.currentText(),
+                            self.c_value.value(), self.c_cond_value.value() if self.c_cond.isChecked() else None)
+        except (cheats.CheatError, IndexError, ValueError) as e:
+            self.log(f"Cheat recusado: {e}")
+            return None
+        self.cheat_list.append(c)
+        self._show_cheats()
+        self.log(f"Cheat: {c.name} ({c.note})",
+                 f"{terminal.CLI} cheat {terminal.q(self.image.path)} {self.c_table.currentText()} "
+                 f"{self.c_index.value()} {self.c_field.currentText()} {self.c_value.value()}"
+                 + (" --pesquisa" if self.project.research_mode else ""))
+        return c
+
+    def cheats_from_changes(self) -> None:
+        last = {}
+        for cs in self.project.changesets.values():
+            if cs.active:
+                for o in cs.ops:
+                    if o.kind == "field":
+                        last[o.target] = o
+        made = 0
+        for o in last.values():
+            try:
+                self.cheat_list.append(self._cheat(o.table, o.index, o.field, o.after))
+                made += 1
+            except (cheats.CheatError, ValueError) as e:
+                self.log(f"{o.target}: {e}")
+        self._show_cheats()
+        self.log(f"{made} código(s) gerado(s) das alterações")
+
+    def clear_cheats(self) -> None:
+        self.cheat_list = []
+        self._show_cheats()
+
+    def export_cheats(self, kind: str, target: str | None = None) -> Path | None:
+        if not self.cheat_list:
+            self.log("Nenhum código para exportar")
+            return None
+        if target is None:
+            target, _ = QFileDialog.getSaveFileName(self, "Exportar cheats", f"{self.project.name}.{kind}",
+                                                    f"Cheats (*.{kind})")
+            if not target:
+                return None
+        text = cheats.to_duckstation(self.cheat_list) if kind == "cht" else cheats.to_text(self.cheat_list)
+        Path(target).write_text(text, encoding="utf-8")
+        self.log(f"Cheats exportados: {target}")
+        return Path(target)
+
+    # ------------------------------------------------------------------ memory card
+    def open_memcard(self, path: str | None = None) -> None:
+        if path is None:
+            path, _ = QFileDialog.getOpenFileName(self, "Memory card", "", "Memory card (*.mcr *.mcd *.srm)")
+            if not path:
+                return
+        try:
+            self.card = memcard.MemCard(Path(path).read_bytes())
+        except (memcard.MemCardError, OSError) as e:
+            self.log(f"Memory card recusado: {e}")
+            return
+        self.card_path = Path(path)
+        self.fill_memcard()
+        self.log(f"Memory card aberto: {path}", f"{terminal.CLI} memcard {terminal.q(path)}")
+
+    def fill_memcard(self) -> None:
+        self.mc_list.clear()
+        bad = self.card.bad_checksums()
+        for s in self.card.saves():
+            ok = "checksum OK" if s.checksum_ok else "CHECKSUM ERRADO"
+            self.mc_list.addItem(f"{s.name} — {s.title or '(sem título)'} — {len(s.blocks)} bloco(s) — {ok}")
+        if bad:
+            self.log(f"Quadros do diretório com checksum errado: {bad}")
+        self.log(f"{len(self.card.saves())} save(s), {len(self.card.free_slots())} bloco(s) livre(s)")
+
+    def _current_save(self):
+        r = self.mc_list.currentRow()
+        saves = self.card.saves() if self.card else []
+        return saves[r] if 0 <= r < len(saves) else None
+
+    def _save_selected(self) -> None:
+        s = self._current_save()
+        if s is None or not s.icon_frames:
+            self.mc_icon.clear()
+            return
+        pix = QPixmap()
+        pix.loadFromData(self.card.icon_png(s), "PNG")
+        self.mc_icon.setPixmap(pix.scaled(96, 96, Qt.KeepAspectRatio, Qt.FastTransformation))
+
+    def export_save(self, target: str | None = None) -> Path | None:
+        s = self._current_save()
+        if s is None:
+            self.log("Selecione um save")
+            return None
+        if target is None:
+            target, _ = QFileDialog.getSaveFileName(self, "Exportar save", f"{s.name}.mcs", "Save (*.mcs)")
+            if not target:
+                return None
+        Path(target).write_bytes(self.card.export_mcs(s))
+        self.log(f"Save exportado: {target}")
+        return Path(target)
+
+    def import_save(self, source: str | None = None) -> None:
+        if self.card is None:
+            self.log("Abra um memory card primeiro")
+            return
+        if source is None:
+            source, _ = QFileDialog.getOpenFileName(self, "Importar save", "", "Save (*.mcs)")
+            if not source:
+                return
+        try:
+            s = self.card.import_mcs(Path(source).read_bytes())
+            self.log(f"Save importado: {s.name} nos blocos {s.blocks} (o cartão só é gravado em “Salvar cópia”)")
+        except (memcard.MemCardError, OSError) as e:
+            self.log(f"Importação recusada: {e}")
+        self.fill_memcard()
+
+    def save_memcard(self, target: str | None = None, overwrite: bool = False) -> Path | None:
+        if self.card is None:
+            return None
+        if target is None:
+            target, _ = QFileDialog.getSaveFileName(self, "Salvar cópia do cartão", "", "Memory card (*.mcr)")
+            if not target:
+                return None
+        target = Path(target)
+        if target.exists() and not overwrite:
+            if QMessageBox.question(self, "Sobrescrever?", f"{target} já existe. Sobrescrever?") != QMessageBox.Yes:
+                return None
+        target.write_bytes(self.card.to_bytes())
+        self.log(f"Memory card gravado: {target}")
+        return target
 
     # ------------------------------------------------------------------ exportação (P2)
     def review_text(self) -> str:

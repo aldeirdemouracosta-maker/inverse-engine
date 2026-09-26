@@ -21,6 +21,8 @@
     python -m inverse_engine.cli nomes IMAGEM skills                       # ponteiros de nomes e hipóteses
     python -m inverse_engine.cli nomes IMAGEM skills --gravar-shift 1 --evidencia "..." --confirmo
     python -m inverse_engine.cli projeto nome PROJ weapons 182 "Novo"      # mesmo tamanho ou menor
+    python -m inverse_engine.cli cheat IMAGEM weapons 182 attack 45 [--pesquisa] [--cht saida.cht]
+    python -m inverse_engine.cli memcard CARTAO.mcr [--exportar N saida.mcs] [--importar save.mcs --saida novo.mcr]
 """
 from __future__ import annotations
 
@@ -278,6 +280,39 @@ def cmd_nomes(args) -> int:
     return 0
 
 
+def cmd_cheat(args) -> int:
+    from inverse_engine.research import cheats
+    image, profile = _profile_for(args.imagem, args.perfis)
+    t = profile.table(args.tabela)
+    c = cheats.field_cheat(t, image.read_file(t.file), args.id, args.campo, args.valor,
+                           _findings_for(profile.profile_id), args.pesquisa)
+    print(f"# {c.name}\n# {c.note}\n{c.text()}")
+    if args.cht:
+        Path(args.cht).write_text(cheats.to_duckstation([c]), encoding="utf-8")
+        print(f"gravado: {args.cht}")
+    return 0
+
+
+def cmd_memcard(args) -> int:
+    from inverse_engine.formats import memcard
+    card = memcard.MemCard(Path(args.cartao).read_bytes())
+    for k, sv in enumerate(card.saves()):
+        print(f"[{k}] {sv.name:<22} {sv.title or '(sem título)':<32} blocos {sv.blocks} "
+              f"{'checksum OK' if sv.checksum_ok else 'CHECKSUM ERRADO'}")
+    print(f"livres: {len(card.free_slots())}  quadros com checksum errado: {card.bad_checksums() or 'nenhum'}")
+    if args.exportar:
+        n, out = args.exportar
+        Path(out).write_bytes(card.export_mcs(card.saves()[int(n)]))
+        print(f"exportado: {out}")
+    if args.importar:
+        if not args.saida or Path(args.saida).resolve() == Path(args.cartao).resolve():
+            raise SystemExit("use --saida com um arquivo novo (o cartão original não é sobrescrito)")
+        sv = card.import_mcs(Path(args.importar).read_bytes())
+        Path(args.saida).write_bytes(card.to_bytes())
+        print(f"importado {sv.name} nos blocos {sv.blocks}; gravado em {args.saida}")
+    return 0
+
+
 def _findings_for(profile_id: str) -> FindingsDB:
     p = FINDINGS / f"{profile_id}.json"
     return FindingsDB.load(p) if p.exists() else FindingsDB({"findings": []})
@@ -353,8 +388,28 @@ def main(argv=None) -> int:
     nm.add_argument("--confirmo", action="store_true", help="conferi as amostras (sem isto nada é gravado)")
     nm.add_argument("--perfis", default=str(PROFILES))
     nm.set_defaults(func=cmd_nomes)
+    ch = sub.add_parser("cheat", help="código GameShark para um campo do perfil")
+    ch.add_argument("imagem")
+    ch.add_argument("tabela")
+    ch.add_argument("id", type=lambda s: int(s, 0))
+    ch.add_argument("campo")
+    ch.add_argument("valor", type=lambda s: int(s, 0))
+    ch.add_argument("--pesquisa", action="store_true", help="aceita endereço sem evidência (experimental)")
+    ch.add_argument("--cht")
+    ch.add_argument("--perfis", default=str(PROFILES))
+    ch.set_defaults(func=cmd_cheat)
+    mc = sub.add_parser("memcard", help="lista, exporta e importa saves de um memory card")
+    mc.add_argument("cartao")
+    mc.add_argument("--exportar", nargs=2, metavar=("N", "SAIDA.mcs"))
+    mc.add_argument("--importar")
+    mc.add_argument("--saida")
+    mc.set_defaults(func=cmd_memcard)
     args = ap.parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except (ValueError, OSError, KeyError) as e:  # erros do núcleo já vêm em português: sem traceback
+        print(f"Erro: {e}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

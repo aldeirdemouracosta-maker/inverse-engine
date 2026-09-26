@@ -51,6 +51,8 @@ class TableSpec:
     integrity_sha256: str | None = None
     names_shift: int = 0              # registro i usa o ponteiro i + shift (só depois de confirmado)
     names_status: str | None = None   # estado da hipótese dos nomes (informativo)
+    record_ram: int | None = None     # endereço de RAM do registro 0 (só com evidência)
+    record_ram_finding: str | None = None
 
     @classmethod
     def from_json(cls, name: str, d: dict) -> "TableSpec":
@@ -66,7 +68,9 @@ class TableSpec:
         return cls(name, d["file"], hexint(d["offset"]), d["stride"], d["count"], fields,
                    d.get("finding"), hexint(pt) if pt is not None else None,
                    names.get("finding"), d.get("groups", []), d.get("integrity_sha256"),
-                   int(names.get("shift", 0)), names.get("status"))
+                   int(names.get("shift", 0)), names.get("status"),
+                   hexint(d["record_ram"]["address"]) if d.get("record_ram") else None,
+                   d["record_ram"].get("finding") if d.get("record_ram") else None)
 
     @property
     def end(self) -> int:

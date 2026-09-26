@@ -280,6 +280,48 @@ class UiTest(unittest.TestCase):
         self.assertIn("realocar", ws.log_view.toPlainText())
         self.assertEqual(ws.grid.item(182, 1).text(), "Rodex")
 
+    def test_cheats_e_memory_card(self):
+        from inverse_engine.formats import memcard
+        from tests.test_cheats_memcard import make_mcs
+        root = Path(self.tmp.name)
+        p = self.app.start_project(self.bin, root / "p5", "Cheats")
+        ws = self.app.workspace
+        self.app.show_menu()
+        self.app.open_cheats()                      # botão do menu com projeto aberto
+        self.assertEqual(ws.tabs.currentIndex(), ws.cheats_tab_index)
+        ws.c_table.setCurrentText("weapons")
+        ws.c_index.setValue(182)
+        ws.c_field.setCurrentText("attack")
+        ws.c_value.setValue(45)
+        self.assertIsNone(ws.add_cheat())           # sem record_ram com evidência
+        self.assertIn("Cheat recusado", ws.log_view.toPlainText())
+        ws.research.setChecked(True)
+        c = ws.add_cheat()
+        self.assertTrue(c.experimental)
+        self.assertIn(c.lines[0], ws.cheat_view.toPlainText())
+        self.assertIn("cheat", ws.term_view.toPlainText())
+        out = ws.export_cheats("cht", str(root / "vh2.cht"))
+        self.assertIn("Type = Gameshark", out.read_text())
+        card = root / "cartao.mcr"
+        blank = memcard.MemCard.blank()
+        blank.import_mcs(make_mcs())
+        card.write_bytes(blank.to_bytes())
+        ws.open_memcard(str(card))
+        self.assertEqual(ws.mc_list.count(), 1)
+        ws.mc_list.setCurrentRow(0)
+        self.assertFalse(ws.mc_icon.pixmap().isNull())
+        mcs = ws.export_save(str(root / "save.mcs"))
+        self.assertEqual(mcs.read_bytes(), make_mcs())
+        ws.import_save(str(mcs))                    # duplicado: recusado
+        self.assertIn("recusada", ws.log_view.toPlainText())
+        other = root / "outro.mcs"
+        other.write_bytes(make_mcs(b"BASLUS-00940OUTRO", 1, 9))
+        ws.import_save(str(other))
+        self.assertEqual(ws.mc_list.count(), 2)
+        self.assertEqual(memcard.MemCard(card.read_bytes()).saves().__len__(), 1)  # original intocado
+        copy_path = ws.save_memcard(str(root / "novo.mcr"))
+        self.assertEqual(len(memcard.MemCard(copy_path.read_bytes()).saves()), 2)
+
     def test_sem_perfil_so_formatos_genericos(self):
         other = Path(self.tmp.name) / "outro.bin"
         from tests.fixture_cd import CdBuilder

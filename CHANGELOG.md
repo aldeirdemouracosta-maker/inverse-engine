@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## Marco 8 — cheats e memory card
+- `research/cheats.py`: códigos GameShark (80 16 bits, 30 8 bits, D0 condicional; 16 bits em endereço
+  ímpar vira dois 30) a partir de um campo do perfil; endereço de RAM de `record_ram` só com finding
+  PROVAVEL/CONFIRMADO; no Modo Pesquisa aceita o endereço de carga do executável como experimental;
+  exporta .cht (DuckStation) e texto
+- `formats/memcard.py`: cartão de 128 KiB, diretório com checksum XOR, saves encadeados, título
+  Shift-JIS, ícone PNG, exportar/importar .mcs (blocos não contíguos), cartão vazio
+- Abas Cheats e Memory Card; botão "Criar cheats" do menu ativado; cartão original nunca sobrescrito
+- CLI `cheat`, `memcard`; erros do CLI sem traceback (código de saída 2)
+
 ## Marco 7 — tabelas genéricas, habilidades e armaduras
 - Perfil: armaduras (0x16FA4, 26 bytes, 158 registros, nomes em 0x16D2C, hash do LVCP) e hash de
   integridade por tabela; findings A-0001 (geometria PROVAVEL), A-0002 (nomes HIPOTESE) e um

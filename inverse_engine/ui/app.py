@@ -35,6 +35,7 @@ class App(QMainWindow):
         self.menu.open_image.connect(lambda: self.open_image())
         self.menu.open_project.connect(self.open_project)
         self.menu.options.connect(self.options)
+        self.menu.cheats.connect(self.open_cheats)
         self.menu.quit.connect(self.close)
         self.workspace.back.connect(self.show_menu)
         self.apply_theme()
@@ -142,6 +143,15 @@ class App(QMainWindow):
             self.show_project(Project.load(path))
         except (ProjectError, ValueError, OSError) as e:
             QMessageBox.warning(self, "Não foi possível abrir o projeto", str(e))
+
+    def open_cheats(self, path=None) -> None:
+        """Cheats dependem do perfil: abre (ou reabre) um projeto e vai direto para a aba Cheats."""
+        if path is None and self.workspace.project is not None:
+            self.stack.setCurrentWidget(self.workspace)
+        else:
+            self.open_project(path)
+        if self.stack.currentWidget() is self.workspace:
+            self.workspace.tabs.setCurrentIndex(self.workspace.cheats_tab_index)
 
     def closeEvent(self, event) -> None:
         if self.stack.currentWidget() is self.workspace:
