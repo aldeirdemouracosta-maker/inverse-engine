@@ -1,7 +1,7 @@
 # Prompt para o Codex — terminar o Inverse Engine (VH2 Studio como primeiro perfil)
 
 Repositório: https://github.com/aldeirdemouracosta-maker/inverse-engine (branch `main`).
-**Os marcos 1 e 2 estão prontos. Comece pelo marco 3.**
+**Os marcos 1, 2 e 3 estão prontos. Comece pelo marco 4.**
 Trabalhe **nesse repositório**, marco por marco, com um commit por marco e todos os testes passando.
 
 ## 0. Leia antes de começar
@@ -28,19 +28,19 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
 ### Situação real do código (importante)
 - O código da **v1.1 do VH2 Studio foi perdido** (`vh2_disc.py`, `vh2_tim.py`, `ppf.py`, `bps_patch.py`,
   `vh2_rom_editor.py`, `vh2_studio.py` e as 137 verificações). **Não procure por ele.** EDC/ECC, PPF, BPS,
-  TIM/PNG e as camadas já foram reescritos no marco 2; o resto (ChangeSet com undo, projeto, exportação,
-  janela PySide6 etc.) é escrito nos marcos 3 em diante.
+  TIM/PNG, camadas, ChangeSet e projeto já foram reescritos nos marcos 2 e 3; o resto (exportação, relatório,
+  hexa, janela PySide6 etc.) é escrito nos marcos 4 em diante.
 - `legado/VH2-PS1-Studio-v3.0/` guarda a v3.0-alpha (Tkinter + Pillow + IPS). **Não altere essa pasta** e não a
   importe no núcleo. Pode servir de referência de ideias: busca por valor/hex com curinga `??`/texto
   Shift-JIS, ChangeSet com undo/redo, prévia de aparência (direções, animação, GIF), prévia de falas com
   retrato. O que for aproveitado é **reescrito** no núcleo novo (sem Pillow) e na interface PySide6.
-- Os **marcos 1 e 2 estão prontos** (ver 0.2): 94 testes passando. Continue do **marco 3**.
+- Os **marcos 1, 2 e 3 estão prontos** (ver 0.2): 110 testes passando. Continue do **marco 4**.
 
 ### 0.1 Estrutura do repositório
 ```
 inverse_engine/
   cli.py                      modo terminal: abrir | tabela | findings  (python -m inverse_engine.cli)
-  core/      rom_image.py profile.py patch_stack.py paths.py   (prontos)  changeset.py project.py export.py (fazer)
+  core/      rom_image.py profile.py patch_stack.py paths.py changeset.py project.py (prontos)  export.py hexview.py (fazer)
   formats/   disc.py psexe.py edc_ecc.py ppf.py bps.py tim.py png.py (prontos)  tmd.py vab.py memcard.py (fazer)
   research/  findings.py                        (pronto)   profiler.py gabarito.py cheats.py (fazer)
   assistant/ rules.py ollama.py context.py      (fazer)
@@ -49,7 +49,7 @@ inverse_engine/
 profiles/SLUS-00940-USA.json          perfil (armas + habilidades)
 research/findings/SLUS-00940-USA.json findings iniciais (F-0001…F-0016, S-0001…S-0003, S-0010…S-0021)
 tests/  fixture_cd.py  test_rom_image.py  test_profile_anchors.py  test_profile_data.py
-        test_edc_ecc.py  test_ppf_bps.py  test_tim_png.py  test_patch_stack.py
+        test_edc_ecc.py  test_ppf_bps.py  test_tim_png.py  test_patch_stack.py  test_changeset_project.py
 legado/ VH2-PS1-Studio-v3.0 (somente referência)
 .github/workflows/tests.yml  (ubuntu-latest, Python 3.10 e 3.12, QT_QPA_PLATFORM=offscreen, PySide6)
 ```
@@ -97,7 +97,19 @@ Rodar os testes: `python -m unittest discover -s tests -t .` (sempre com `-t .`;
   A política de edição por finding já é aplicada no `FieldEdit`. O ChangeSet do marco 3 deve **gerar camadas
   `changeset`/`graphics`/`raw` com essas operações**, não criar outro mecanismo de escrita.
 - `core/paths.py`: `with_ext(caminho, ".ext")`, `replace_ext(caminho, ".bin", ".cue")`.
-- CLI: `abrir`, `tabela`, `findings`, `tims`, `ppf`.
+- `core/changeset.py` (marco 3): `ChangeSet(name)` + `.bind(image, profile, findings, research_mode)`;
+  `set_field(tabela, índice, campo, valor, origin)`, `set_raw(arquivo, offset, bytes)` (só Modo Pesquisa),
+  `set_graphic(GraphicEdit)` → `Operation(id, kind, target, before, after, origin, finding, date, group,
+  group_label, experimental, …)`; `with cs.group("rótulo"):` agrupa (erro no meio desfaz o grupo inteiro);
+  `undo()`/`redo()` por grupo, `can_undo/can_redo`, `history()`, `current_field`, `to_layers()` (só o último
+  valor de cada alvo), `to_dict/from_dict`. ORIGINS = manual, regras, IA, script.
+- `core/project.py`: `Project.create(pasta, nome, imagem[, profile_id])` (detecta o perfil pelas âncoras),
+  `add_patch(caminho[, nome])` (PPF/BPS por caminho relativo + SHA-256; entra antes dos changesets),
+  `add_changeset(nome)`, `move(nome, índice)`, `set_active(nome, bool)`, `bind(nome_changeset)`,
+  `stack(accept_changed_files=False)` → `PatchStack` montado na ordem (hash mudou → `ProjectError` com "P4"),
+  `check_hashes()`, `acknowledged` (ids de conflitos reconhecidos), `output` ({folder, name}),
+  `save()` (atômico, `<nome>.vh2proj.json`), `Project.load(caminho)`, `rel()/abs()`.
+- CLI: `abrir`, `tabela`, `findings`, `tims`, `ppf`, `projeto novo|patch|campo|desfazer|refazer|mostrar`.
 
 Se precisar mudar uma dessas APIs, adapte os testes **mantendo a mesma verificação**. Nunca apague nem
 enfraqueça um teste.
@@ -672,12 +684,17 @@ exportado é distribuído pelo projeto.
    (arquivo e LBA) e campo (`weapons[182].attack`); gráfico e arma saem na mesma BIN; desativar camada e gerar de
    novo reproduz a saída esperada; EDC/ECC só recalculado no fim e só nos setores tocados; setor original com
    EDC/ECC inválido recusado; gráfico em subpasta exportado corretamente; `fixture_cd.py` passa a gravar EDC/ECC.
-3. **ChangeSet com undo/redo + arquivo de projeto** (`<nome>.vh2proj.json`). O ChangeSet guarda operações
+3. ~~ChangeSet com undo/redo + arquivo de projeto~~ **pronto** (`<nome>.vh2proj.json`). O ChangeSet guarda operações
    `{id, alvo, antes, depois, origem: manual|regras|IA|script, finding, data, grupo}` e gera as camadas do
    `PatchStack`; camadas PPF/BPS guardam caminho relativo + SHA-256 do arquivo de patch. Aceite: desfazer/refazer
    grupos; projeto salvo e reaberto idêntico; caminhos relativos à pasta do projeto; patch com hash diferente do
    registrado é recusado ao reabrir (P4).
-4. **Validation + Export + relatório + hexa.** Aceite: BIN nova + BPS + CUE + relatório `.md`/`.json`; relatório
+4. **Validation + Export + relatório + hexa.** Faça em `core/export.py` uma função
+   `export(projeto, overwrite=False)` que usa `project.stack().build(acknowledged=set(project.acknowledged))`,
+   grava em `project.output["folder"]` (relativa à pasta do projeto) a BIN nova, o BPS contra a original, o CUE
+   (use `replace_ext`/`with_ext`, nunca `with_suffix`) e o relatório; e `core/hexview.py` com as linhas da
+   seção 9 (use `PatchStack.writes`, `locate`, `field_label` e `PsExe.file_to_ram`). Portão P2: a exportação
+   só acontece chamada explicitamente. Acrescente `projeto exportar PROJ` e `hexa PROJ ALVO` no CLI. Aceite: BIN nova + BPS + CUE + relatório `.md`/`.json`; relatório
    JSON reproduz a saída (mesmo hash) a partir do original + camadas; reler a BIN nova e comparar; aplicar o BPS no
    original e comparar; original intocado; sobrescrita exige confirmação.
 5. **Casca do Inverse Engine** (seção 12), PySide6: MainMenuState + EditorWorkspaceState com os painéis, usando
