@@ -1,12 +1,13 @@
 """Fixtures sintéticas: CD Mode 2 (2352 bytes/setor) com ISO9660 e um SLUS artificial.
 
 Nada aqui vem do jogo. Os nomes e valores são inventados para teste.
-EDC/ECC ficam zerados: a leitura não depende deles (a conferência entra no marco 2).
+Todos os setores saem com EDC/ECC corretos (formats/edc_ecc.py).
 """
 from __future__ import annotations
 
 import struct
 
+from inverse_engine.formats import edc_ecc
 from inverse_engine.formats.disc import RAW_SECTOR, SYNC, USER_SIZE, FORM2_USER_SIZE
 
 LOAD_ADDRESS = 0x80010000
@@ -22,13 +23,13 @@ def raw_sector(lba: int, payload: bytes, form2: bool = False, mode: int = 2) -> 
     header = bytes([_bcd(m), _bcd(s), _bcd(f), mode])
     if mode == 1:
         body = payload.ljust(USER_SIZE, b"\x00") + b"\x00" * (RAW_SECTOR - 16 - USER_SIZE)
-        return SYNC + header + body
+        return edc_ecc.compute(SYNC + header + body)
     submode = 0x20 if form2 else 0x08
     sub = bytes([0, 0, submode, 0]) * 2
     size = FORM2_USER_SIZE if form2 else USER_SIZE
     body = payload.ljust(size, b"\x00")
     sector = SYNC + header + sub + body
-    return sector.ljust(RAW_SECTOR, b"\x00")
+    return edc_ecc.compute(sector.ljust(RAW_SECTOR, b"\x00"))
 
 
 def _both16(v: int) -> bytes:
