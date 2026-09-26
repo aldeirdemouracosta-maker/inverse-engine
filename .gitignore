@@ -1,0 +1,19 @@
+# Nunca versionar o jogo, BIOS, patches de terceiros nem saídas geradas
+*.bin
+*.BIN
+*.cue
+*.iso
+*.img
+*.ecm
+*.ppf
+*.bps
+*.mcr
+*.mcd
+bios/
+SLUS_*
+saida/
+export/
+*.vh2proj.json
+__pycache__/
+*.pyc
+.venv/

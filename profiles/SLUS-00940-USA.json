@@ -1,0 +1,165 @@
+{
+  "profile_id": "SLUS-00940-USA",
+  "game": "Vandal Hearts II",
+  "region": "NTSC-U",
+  "executable": {
+    "name": "SLUS_009.40",
+    "format": "PS-X EXE",
+    "load_address": "0x8006C000",
+    "header_size": "0x800"
+  },
+  "identify": {
+    "anchors": [
+      {
+        "type": "bytes",
+        "file": "SLUS_009.40",
+        "offset": "0x0",
+        "hex": "50532D5820455845"
+      },
+      {
+        "type": "sha256_range",
+        "file": "SLUS_009.40",
+        "offset": "0xB5C",
+        "length": 4730,
+        "sha256": "5bf7dbf0933309437cbd79476e77a14057ea2ed4bb0f3e086b9a1c3a52d2b06f",
+        "meaning": "tabela de armas 215 × 22 intacta"
+      },
+      {
+        "type": "catalog_name",
+        "table": "weapons",
+        "id": 182,
+        "name": "Rebelrod"
+      }
+    ],
+    "required": [
+      "bytes",
+      "catalog_name"
+    ],
+    "table_integrity": [
+      "sha256_range"
+    ]
+  },
+  "known_images": [
+    {
+      "kind": "bin",
+      "sha256": "2ee08a8f67e495dca429c52d2b596880f6365445faa30ec1f59af0f76ba948f1",
+      "note": "BIN aprovada no LVCP Engine"
+    }
+  ],
+  "tables": {
+    "weapons": {
+      "file": "SLUS_009.40",
+      "offset": "0xB5C",
+      "stride": 22,
+      "count": 215,
+      "finding": "F-0001",
+      "names": {
+        "pointer_table": "0x800",
+        "finding": "F-0002"
+      },
+      "groups": [
+        {
+          "category": "espada",
+          "start": 1,
+          "end": 21
+        },
+        {
+          "category": "machado",
+          "start": 22,
+          "end": 41
+        },
+        {
+          "category": "lanca",
+          "start": 42,
+          "end": 61
+        },
+        {
+          "category": "arremesso",
+          "start": 62,
+          "end": 81
+        },
+        {
+          "category": "arco",
+          "start": 82,
+          "end": 101
+        },
+        {
+          "category": "cajado",
+          "start": 102,
+          "end": 137
+        },
+        {
+          "category": "faca",
+          "start": 138,
+          "end": 157
+        },
+        {
+          "category": "escudo",
+          "start": 158,
+          "end": 178
+        },
+        {
+          "category": "especial",
+          "start": 179,
+          "end": 200
+        },
+        {
+          "category": "monstro",
+          "start": 201,
+          "end": 214
+        }
+      ],
+      "fields": {
+        "range": {
+          "offset": "0x7",
+          "type": "u8",
+          "finding": "F-0010"
+        },
+        "attack": {
+          "offset": "0xA",
+          "type": "u16le",
+          "finding": "F-0011"
+        },
+        "price": {
+          "offset": "0xC",
+          "type": "u16le",
+          "finding": "F-0012"
+        },
+        "weight": {
+          "offset": "0xE",
+          "type": "u16le",
+          "finding": "F-0013"
+        },
+        "visual_index_candidate": {
+          "offset": "0x10",
+          "type": "u16le",
+          "finding": "F-0014"
+        },
+        "descriptor_code": {
+          "offset": "0x12",
+          "type": "u16le",
+          "finding": "F-0015"
+        },
+        "lookup_key": {
+          "offset": "0x14",
+          "type": "u16le",
+          "finding": "F-0016"
+        }
+      }
+    },
+    "skills": {
+      "file": "SLUS_009.40",
+      "offset": "0x15D4C",
+      "stride": 18,
+      "count": 203,
+      "finding": "S-0001",
+      "names": {
+        "pointer_table": "0x15A1C",
+        "status": "HIPOTESE",
+        "finding": "S-0002"
+      },
+      "integrity_sha256": "cfd77b35c2bc07e0d8e48bd791f5c7bf2affa58870c583b1af06242aff90186b",
+      "fields": {}
+    }
+  }
+}

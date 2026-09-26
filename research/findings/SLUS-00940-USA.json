@@ -1,0 +1,482 @@
+{
+  "schema": 1,
+  "profile": "SLUS-00940-USA",
+  "findings": [
+    {
+      "id": "F-0001",
+      "subject": "weapons.geometry",
+      "file": "SLUS_009.40",
+      "interpretation": "tabela de armas em 0xB5C, 22 bytes por registro, 215 registros",
+      "status": "CONFIRMADO",
+      "evidence": [
+        {
+          "kind": "lvcp_evidence",
+          "detail": "table_sha256 do LVCP Engine confere",
+          "date": null
+        },
+        {
+          "kind": "reference_value",
+          "detail": "ordem de IDs confere com fonte independente",
+          "date": null
+        }
+      ],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "F-0002",
+      "subject": "weapons.names",
+      "file": "SLUS_009.40",
+      "interpretation": "matriz de ponteiros de nomes em 0x800; sobe a CONFIRMADO quando a âncora Rebelrod (id 182) passar na imagem aberta",
+      "status": "PROVAVEL",
+      "evidence": [
+        {
+          "kind": "lvcp_evidence",
+          "detail": "ponteiros imediatamente antes da tabela",
+          "date": null
+        }
+      ],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "F-0010",
+      "subject": "weapons.range",
+      "file": "SLUS_009.40",
+      "record_offset": "0x7",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "alcance",
+      "status": "HIPOTESE",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "F-0011",
+      "subject": "weapons.attack",
+      "file": "SLUS_009.40",
+      "record_offset": "0xA",
+      "size": 2,
+      "type": "u16le",
+      "interpretation": "ataque base da arma",
+      "status": "PROVAVEL",
+      "evidence": [
+        {
+          "kind": "static_values",
+          "detail": "12 armas especiais (0xB3–0xC6) com valores coerentes",
+          "date": "2026-08"
+        }
+      ],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "F-0012",
+      "subject": "weapons.price",
+      "file": "SLUS_009.40",
+      "record_offset": "0xC",
+      "size": 2,
+      "type": "u16le",
+      "interpretation": "preço",
+      "status": "HIPOTESE",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "F-0013",
+      "subject": "weapons.weight",
+      "file": "SLUS_009.40",
+      "record_offset": "0xE",
+      "size": 2,
+      "type": "u16le",
+      "interpretation": "peso",
+      "status": "HIPOTESE",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "F-0014",
+      "subject": "weapons.visual_index_candidate",
+      "file": "SLUS_009.40",
+      "record_offset": "0x10",
+      "size": 2,
+      "type": "u16le",
+      "interpretation": "índice visual (candidato)",
+      "status": "HIPOTESE",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "F-0015",
+      "subject": "weapons.descriptor_code",
+      "file": "SLUS_009.40",
+      "record_offset": "0x12",
+      "size": 2,
+      "type": "u16le",
+      "interpretation": "código do descritor",
+      "status": "PROVAVEL",
+      "evidence": [
+        {
+          "kind": "static_values",
+          "detail": "12 armas especiais (0xB3–0xC6) com valores coerentes",
+          "date": "2026-08"
+        }
+      ],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "F-0016",
+      "subject": "weapons.lookup_key",
+      "file": "SLUS_009.40",
+      "record_offset": "0x14",
+      "size": 2,
+      "type": "u16le",
+      "interpretation": "chave de consulta",
+      "status": "HIPOTESE",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0001",
+      "subject": "skills.geometry",
+      "file": "SLUS_009.40",
+      "interpretation": "tabela de habilidades em 0x15D4C, 18 bytes, 203 registros (contagem a confirmar)",
+      "status": "PROVAVEL",
+      "evidence": [
+        {
+          "kind": "lvcp_evidence",
+          "detail": "table_sha256 cfd77b35…186b do LVCP Gate 02",
+          "date": null
+        }
+      ],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0002",
+      "subject": "skills.names",
+      "file": "SLUS_009.40",
+      "interpretation": "nomes via ponteiros em 0x15A1C; 204 ponteiros × 203 registros em aberto",
+      "status": "HIPOTESE",
+      "evidence": [
+        {
+          "kind": "lvcp_evidence",
+          "detail": "LVCP achou sequências 0x15A1C (143) e 0x15C5C (60)",
+          "date": null
+        }
+      ],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0003",
+      "subject": "skills.weapon_link",
+      "file": "SLUS_009.40",
+      "interpretation": "vínculo arma → habilidade; índice compartilhado refutado por fonte independente",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0016",
+      "subject": "skills.byte_0x00",
+      "file": "SLUS_009.40",
+      "record_offset": "0x0",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0017",
+      "subject": "skills.byte_0x01",
+      "file": "SLUS_009.40",
+      "record_offset": "0x1",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0018",
+      "subject": "skills.byte_0x02",
+      "file": "SLUS_009.40",
+      "record_offset": "0x2",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0019",
+      "subject": "skills.byte_0x03",
+      "file": "SLUS_009.40",
+      "record_offset": "0x3",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0020",
+      "subject": "skills.byte_0x04",
+      "file": "SLUS_009.40",
+      "record_offset": "0x4",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0021",
+      "subject": "skills.byte_0x05",
+      "file": "SLUS_009.40",
+      "record_offset": "0x5",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0022",
+      "subject": "skills.byte_0x06",
+      "file": "SLUS_009.40",
+      "record_offset": "0x6",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0023",
+      "subject": "skills.byte_0x07",
+      "file": "SLUS_009.40",
+      "record_offset": "0x7",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0024",
+      "subject": "skills.byte_0x08",
+      "file": "SLUS_009.40",
+      "record_offset": "0x8",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0025",
+      "subject": "skills.byte_0x09",
+      "file": "SLUS_009.40",
+      "record_offset": "0x9",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0026",
+      "subject": "skills.byte_0x0A",
+      "file": "SLUS_009.40",
+      "record_offset": "0xA",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0027",
+      "subject": "skills.byte_0x0B",
+      "file": "SLUS_009.40",
+      "record_offset": "0xB",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0028",
+      "subject": "skills.byte_0x0C",
+      "file": "SLUS_009.40",
+      "record_offset": "0xC",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0029",
+      "subject": "skills.byte_0x0D",
+      "file": "SLUS_009.40",
+      "record_offset": "0xD",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0030",
+      "subject": "skills.byte_0x0E",
+      "file": "SLUS_009.40",
+      "record_offset": "0xE",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0031",
+      "subject": "skills.byte_0x0F",
+      "file": "SLUS_009.40",
+      "record_offset": "0xF",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0032",
+      "subject": "skills.byte_0x10",
+      "file": "SLUS_009.40",
+      "record_offset": "0x10",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "S-0033",
+      "subject": "skills.byte_0x11",
+      "file": "SLUS_009.40",
+      "record_offset": "0x11",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    }
+  ]
+}
