@@ -54,6 +54,8 @@ python3 -m inverse_engine.cli reproduzir ~/vh2/saida/"Rebalance 2026.relatorio.j
 python3 -m inverse_engine.cli perfilar "Vandal Hearts II (USA).cue" weapons
 python3 -m inverse_engine.cli gabarito "Vandal Hearts II (USA).cue" weapons meu_gabarito.csv
 python3 -m inverse_engine.cli teste-campo ~/vh2/"Rebalance 2026.vh2proj.json" weapons 182 0x0C u16le 999
+python3 -m inverse_engine.cli nomes "Vandal Hearts II (USA).cue" skills
+python3 -m inverse_engine.cli projeto nome ~/vh2/"Rebalance 2026.vh2proj.json" weapons 182 "Rebel"
 python3 -m unittest discover -s tests -t .                           # testes (sintéticos)
 ```
 
@@ -67,8 +69,9 @@ python3 -m unittest discover -s tests -t .                           # testes (s
 | 4. Validation + Export + relatório + hexa | feito: BIN + BPS + CUE + relatório .md/.json, conferências (reler BIN, BPS na original, EDC/ECC, original intocado), sobrescrita só com confirmação, relatório reproduz a saída, hexa de escritas/registros/TIM |
 | 5. Casca PySide6 (menu inicial + workspace) | feito: menu inicial com recentes e estatísticas, workspace com painéis (arquivos por conteúdo, inspetor hexa, camadas e conflitos, histórico, console + terminal equivalente), abas Tabelas/Gráficos/Exportar/Sistema, portões P2 e P4, temas simples e fantasia (WCAG AA), teclado e nomes acessíveis |
 | 6. Modo Pesquisa | feito: perfilador de colunas, gabarito CSV (propostas PROVAVEL com statistical_match, revisadas antes de gravar), marcar hipótese, BIN de teste com um campo, recolorir TIM em magenta, findings G-xxxx, promoção com evidência (P3) |
-| 7. Tabelas genéricas + habilidades/magias | próximo |
-| 8–14 | pendentes |
+| 7. Tabelas genéricas + habilidades/magias | feito: armas, habilidades e armaduras com o mesmo código; análise de ponteiros de nomes (204 × 203 exibido, hipóteses de alinhamento, nada gravado sem confirmar); troca de nome do mesmo tamanho ou menor; bytes crus editáveis no Modo Pesquisa |
+| 8. Cheats + memory card | próximo |
+| 9–14 | pendentes |
 
 `legado/VH2-PS1-Studio-v3.0/` guarda a versão 3.0-alpha (Tkinter) sem alterações, como
 referência. O código da v1.1 do VH2 Studio foi perdido; EDC/ECC, PPF, BPS e TIM/PNG foram reescritos

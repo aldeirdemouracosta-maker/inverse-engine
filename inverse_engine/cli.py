@@ -18,6 +18,9 @@
     python -m inverse_engine.cli perfilar IMAGEM weapons                   # estatísticas por posição (Pesquisa)
     python -m inverse_engine.cli gabarito IMAGEM weapons GABARITO.csv [--registrar]
     python -m inverse_engine.cli teste-campo PROJ weapons 182 0x0C u16le 999   # BIN de teste em testes/
+    python -m inverse_engine.cli nomes IMAGEM skills                       # ponteiros de nomes e hipóteses
+    python -m inverse_engine.cli nomes IMAGEM skills --gravar-shift 1 --evidencia "..." --confirmo
+    python -m inverse_engine.cli projeto nome PROJ weapons 182 "Novo"      # mesmo tamanho ou menor
 """
 from __future__ import annotations
 
@@ -138,6 +141,11 @@ def cmd_projeto(args) -> int:
         with cs.group(args.grupo or f"{table}[{index}].{field_name}"):
             op = cs.set_field(table, int(index, 0), field_name, int(value, 0))
         print(f"{op.target}: {op.before} → {op.after}")
+    elif args.acao == "nome":
+        table, index, text = rest
+        cs = p.bind(args.changeset or next(iter(p.changesets)))
+        op = cs.set_name(table, int(index, 0), text)
+        print(f"{op.target}: {op.before} → {op.after}")
     elif args.acao in ("desfazer", "refazer"):
         cs = p.changesets[args.changeset or next(iter(p.changesets))]
         ops = cs.undo() if args.acao == "desfazer" else cs.redo()
@@ -251,6 +259,25 @@ def cmd_teste_campo(args) -> int:
     return 0
 
 
+def cmd_nomes(args) -> int:
+    from inverse_engine.research import names
+    image, profile = _profile_for(args.imagem, args.perfis)
+    t = profile.table(args.tabela)
+    rep = names.analyze(t, image.read_file(t.file))
+    print(rep.summary())
+    for h in rep.hypotheses:
+        print(f"\nshift {h.shift}: {h.description}")
+        for i, n in h.samples:
+            print(f"   [{i}] {n or '(sem nome)'}")
+        if h.records_without_name:
+            print(f"   registros sem nome: {h.records_without_name[:10]}")
+    if args.gravar_shift is not None:
+        names.confirm_shift(profile.source, t.name, args.gravar_shift, _findings_for(profile.profile_id),
+                            args.evidencia or "", confirmed=args.confirmo)
+        print(f"\nGravado: {t.name} shift {args.gravar_shift}")
+    return 0
+
+
 def _findings_for(profile_id: str) -> FindingsDB:
     p = FINDINGS / f"{profile_id}.json"
     return FindingsDB.load(p) if p.exists() else FindingsDB({"findings": []})
@@ -280,7 +307,7 @@ def main(argv=None) -> int:
     pp.add_argument("--imagem")
     pp.set_defaults(func=cmd_ppf)
     pj = sub.add_parser("projeto", help="projeto .vh2proj.json: novo, patch, campo, desfazer, refazer, mostrar")
-    pj.add_argument("acao", choices=["novo", "patch", "campo", "desfazer", "refazer", "mostrar", "hexa",
+    pj.add_argument("acao", choices=["novo", "patch", "campo", "nome", "desfazer", "refazer", "mostrar", "hexa",
                                      "reconhecer", "exportar"])
     pj.add_argument("--sobrescrever", action="store_true")
     pj.add_argument("args", nargs="+")
@@ -318,6 +345,14 @@ def main(argv=None) -> int:
     tc.add_argument("valor", type=lambda s: int(s, 0))
     tc.add_argument("--sobrescrever", action="store_true")
     tc.set_defaults(func=cmd_teste_campo)
+    nm = sub.add_parser("nomes", help="analisa a matriz de ponteiros de nomes de uma tabela")
+    nm.add_argument("imagem")
+    nm.add_argument("tabela")
+    nm.add_argument("--gravar-shift", type=int)
+    nm.add_argument("--evidencia")
+    nm.add_argument("--confirmo", action="store_true", help="conferi as amostras (sem isto nada é gravado)")
+    nm.add_argument("--perfis", default=str(PROFILES))
+    nm.set_defaults(func=cmd_nomes)
     args = ap.parse_args(argv)
     return args.func(args)
 

@@ -1,7 +1,7 @@
 # Prompt para o Codex — terminar o Inverse Engine (VH2 Studio como primeiro perfil)
 
 Repositório: https://github.com/aldeirdemouracosta-maker/inverse-engine (branch `main`).
-**Os marcos 1 a 6 (núcleo, interface PySide6 e Modo Pesquisa) estão prontos. Comece pelo marco 7 (habilidades/magias).**
+**Os marcos 1 a 7 estão prontos (núcleo, interface PySide6, Modo Pesquisa, tabelas genéricas com habilidades e armaduras). Comece pelo marco 8 (cheats + memory card).**
 Trabalhe **nesse repositório**, marco por marco, com um commit por marco e todos os testes passando.
 
 ## 0. Leia antes de começar
@@ -29,12 +29,12 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
 - O código da **v1.1 do VH2 Studio foi perdido** (`vh2_disc.py`, `vh2_tim.py`, `ppf.py`, `bps_patch.py`,
   `vh2_rom_editor.py`, `vh2_studio.py` e as 137 verificações). **Não procure por ele.** EDC/ECC, PPF, BPS,
   TIM/PNG, camadas, ChangeSet, projeto, exportação, relatório e hexa já foram reescritos nos marcos 2 a 4;
-  a interface PySide6 no marco 5 e o Modo Pesquisa no marco 6; o resto é escrito nos marcos 7 em diante.
+  a interface PySide6 no marco 5, o Modo Pesquisa no marco 6 e as tabelas genéricas no marco 7; o resto é escrito nos marcos 8 em diante.
 - `legado/VH2-PS1-Studio-v3.0/` guarda a v3.0-alpha (Tkinter + Pillow + IPS). **Não altere essa pasta** e não a
   importe no núcleo. Pode servir de referência de ideias: busca por valor/hex com curinga `??`/texto
   Shift-JIS, ChangeSet com undo/redo, prévia de aparência (direções, animação, GIF), prévia de falas com
   retrato. O que for aproveitado é **reescrito** no núcleo novo (sem Pillow) e na interface PySide6.
-- Os **marcos 1 a 6 estão prontos** (ver 0.2): 140 testes passando. Continue do **marco 7**.
+- Os **marcos 1 a 7 estão prontos** (ver 0.2): 152 testes passando. Continue do **marco 8**.
 
 ### 0.1 Estrutura do repositório
 ```
@@ -49,7 +49,7 @@ inverse_engine/
 profiles/SLUS-00940-USA.json          perfil (armas + habilidades)
 research/findings/SLUS-00940-USA.json findings iniciais (F-0001…F-0016, S-0001…S-0003, S-0010…S-0021)
 tests/  fixture_cd.py  test_rom_image.py  test_profile_anchors.py  test_profile_data.py
-        test_edc_ecc.py  test_ppf_bps.py  test_tim_png.py  test_patch_stack.py  test_changeset_project.py  test_export_hexview.py  test_ui.py  test_research.py
+        test_edc_ecc.py  test_ppf_bps.py  test_tim_png.py  test_patch_stack.py  test_changeset_project.py  test_export_hexview.py  test_ui.py  test_research.py  test_tables_names.py
 legado/ VH2-PS1-Studio-v3.0 (somente referência)
 .github/workflows/tests.yml  (ubuntu-latest, Python 3.10 e 3.12, QT_QPA_PLATFORM=offscreen, PySide6)
 ```
@@ -146,6 +146,16 @@ Rodar os testes: `python -m unittest discover -s tests -t .` (sempre com `-t .`;
   Modo Pesquisa ligado): perfilador, gabarito com propostas marcáveis, marcar hipótese, BIN de teste, findings,
   promover/rebaixar (P3: `Workspace.promote(id, estado, tipo, detalhe, confirmed)`). Nos testes, use uma cópia
   dos findings (`project.findings_dir = pasta_temporária`): **testes nunca gravam em `research/findings/`**.
+- Tabelas (marco 7): o perfil tem `weapons`, `skills` e `armors` (as duas últimas sem campos: todos os bytes
+  DESCONHECIDO). `TableSpec.names_shift`, `name_slot(dados, i)`, `integrity(dados)`; `research/names.py`
+  `analyze(tabela, dados)` → `NamesReport(pointer_count, record_count, entries, runs, invalid, hypotheses,
+  divergence, summary())`, `confirm_shift(perfil.json, tabela, shift, db, evidência, confirmed)` (só grava com
+  confirmação), `encode_name(tabela, dados, i, texto)` (mesmo tamanho ou menor, NUL; maior → `NamesError`);
+  `ChangeSet.set_name(tabela, i, texto)` (op `text`). Aba Tabelas: coluna de nome editável conforme a política,
+  bytes sem campo como colunas "byte_0xNN (cru)" no Modo Pesquisa, botão "Nomes…" (P3/confirmação).
+  Nos testes, copie também o perfil (`project.profiles_dir = pasta_temporária`): **testes nunca gravam em
+  `profiles/`**. `tests/test_tables_names.py` tem `make_full_slus()` (armas + habilidades 204×203 com a
+  entrada 143 inválida + armaduras) para reaproveitar.
 
 Se precisar mudar uma dessas APIs, adapte os testes **mantendo a mesma verificação**. Nunca apague nem
 enfraqueça um teste.
@@ -746,7 +756,7 @@ exportado é distribuído pelo projeto.
    `QT_QPA_PLATFORM=offscreen` no CI.
 6. ~~Modo Pesquisa~~ **pronto** (seção 10). Aceite: perfilador acha uma coluna plantada; gabarito CSV sintético gera finding
    `PROVAVEL` com `statistical_match`; BIN de teste com **um** campo alterado; recolorir para teste gera BIN.
-7. **Tabelas genéricas + habilidades/magias** (seção 11), depois armaduras. A tabela genérica já existe
+7. ~~Tabelas genéricas + habilidades/magias~~ **pronto** (seção 11), com armaduras. A tabela genérica já existe
    (`TableSpec`, aba Tabelas com seletor, perfilador e gabarito funcionam para qualquer tabela do perfil). Falta:
    importação de nomes com a hipótese de ponteiros mostrando amostras e a divergência 204 × 203 antes de gravar
    (nada gravado sem confirmação); edição de texto do mesmo tamanho ou menor (NUL) com recusa do maior; edição de
@@ -757,7 +767,14 @@ exportado é distribuído pelo projeto.
    todos os testes com o código genérico; habilidades aparecem com campos DESCONHECIDOS, editáveis só como byte
    cru no Modo Pesquisa; divergência 204 × 203 exibida e nada gravado sem confirmação; texto maior que o original
    recusado; nada promovido sem evidência.
-8. **Cheats + memory card.** Aceite: código gerado a partir de um campo do perfil bate com o endereço RAM
+8. **Cheats + memory card.** Cheats: `research/cheats.py` gera códigos GameShark (`80XXXXXX YYYY` 16 bits,
+   `30XXXXXX 00YY` 8 bits, `D0…` condicional) a partir de um campo do perfil, usando o endereço de RAM do
+   registro. O endereço vem de `record_ram` na tabela do perfil **só quando houver evidência** (finding
+   CONFIRMADO/PROVAVEL, ex.: `emulator_breakpoint`); sem isso, o gerador recusa. Enquanto não houver essa
+   evidência, `PsExe.file_to_ram` dá o endereço onde o executável é carregado, que só vale se a tabela não for
+   copiada para outro lugar em tempo de execução — registre isso como HIPOTESE, não como verdade. Exportar para
+   DuckStation (`.cht`) e texto simples. Memory card: `formats/memcard.py` (ver 0.4). Botão "Criar cheats" e
+   aba "Memory Card" no workspace (ative o botão do menu). Aceite: código gerado a partir de um campo do perfil bate com o endereço RAM
    esperado (`record_ram` no perfil, só quando houver evidência; senão o gerador recusa); memory card sintético
    listado, exportado e reimportado com checksum correto.
 9. **Áudio VAB** (só leitura). Aceite: VAB sintético decodificado para WAV igual ao esperado.

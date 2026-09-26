@@ -477,6 +477,426 @@
         "SLUS-00940-USA"
       ],
       "history": []
+    },
+    {
+      "id": "A-0001",
+      "subject": "armors.geometry",
+      "file": "SLUS_009.40",
+      "interpretation": "tabela de armaduras em 0x16FA4, 26 bytes, 158 registros",
+      "status": "PROVAVEL",
+      "evidence": [
+        {
+          "kind": "lvcp_evidence",
+          "detail": "table_sha256 f51ae2dc…61fc2 do LVCP; 0x16D2C + 158×4 = 0x16FA4 (ponteiros imediatamente antes da tabela)",
+          "date": null
+        }
+      ],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0002",
+      "subject": "armors.names",
+      "file": "SLUS_009.40",
+      "interpretation": "nomes via ponteiros em 0x16D2C (158 ponteiros)",
+      "status": "HIPOTESE",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0016",
+      "subject": "armors.byte_0x00",
+      "file": "SLUS_009.40",
+      "record_offset": "0x0",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0017",
+      "subject": "armors.byte_0x01",
+      "file": "SLUS_009.40",
+      "record_offset": "0x1",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0018",
+      "subject": "armors.byte_0x02",
+      "file": "SLUS_009.40",
+      "record_offset": "0x2",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0019",
+      "subject": "armors.byte_0x03",
+      "file": "SLUS_009.40",
+      "record_offset": "0x3",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0020",
+      "subject": "armors.byte_0x04",
+      "file": "SLUS_009.40",
+      "record_offset": "0x4",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0021",
+      "subject": "armors.byte_0x05",
+      "file": "SLUS_009.40",
+      "record_offset": "0x5",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0022",
+      "subject": "armors.byte_0x06",
+      "file": "SLUS_009.40",
+      "record_offset": "0x6",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0023",
+      "subject": "armors.byte_0x07",
+      "file": "SLUS_009.40",
+      "record_offset": "0x7",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0024",
+      "subject": "armors.byte_0x08",
+      "file": "SLUS_009.40",
+      "record_offset": "0x8",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0025",
+      "subject": "armors.byte_0x09",
+      "file": "SLUS_009.40",
+      "record_offset": "0x9",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0026",
+      "subject": "armors.byte_0x0A",
+      "file": "SLUS_009.40",
+      "record_offset": "0xA",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0027",
+      "subject": "armors.byte_0x0B",
+      "file": "SLUS_009.40",
+      "record_offset": "0xB",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0028",
+      "subject": "armors.byte_0x0C",
+      "file": "SLUS_009.40",
+      "record_offset": "0xC",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0029",
+      "subject": "armors.byte_0x0D",
+      "file": "SLUS_009.40",
+      "record_offset": "0xD",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0030",
+      "subject": "armors.byte_0x0E",
+      "file": "SLUS_009.40",
+      "record_offset": "0xE",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0031",
+      "subject": "armors.byte_0x0F",
+      "file": "SLUS_009.40",
+      "record_offset": "0xF",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0032",
+      "subject": "armors.byte_0x10",
+      "file": "SLUS_009.40",
+      "record_offset": "0x10",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0033",
+      "subject": "armors.byte_0x11",
+      "file": "SLUS_009.40",
+      "record_offset": "0x11",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0034",
+      "subject": "armors.byte_0x12",
+      "file": "SLUS_009.40",
+      "record_offset": "0x12",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0035",
+      "subject": "armors.byte_0x13",
+      "file": "SLUS_009.40",
+      "record_offset": "0x13",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0036",
+      "subject": "armors.byte_0x14",
+      "file": "SLUS_009.40",
+      "record_offset": "0x14",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0037",
+      "subject": "armors.byte_0x15",
+      "file": "SLUS_009.40",
+      "record_offset": "0x15",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0038",
+      "subject": "armors.byte_0x16",
+      "file": "SLUS_009.40",
+      "record_offset": "0x16",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0039",
+      "subject": "armors.byte_0x17",
+      "file": "SLUS_009.40",
+      "record_offset": "0x17",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0040",
+      "subject": "armors.byte_0x18",
+      "file": "SLUS_009.40",
+      "record_offset": "0x18",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "A-0041",
+      "subject": "armors.byte_0x19",
+      "file": "SLUS_009.40",
+      "record_offset": "0x19",
+      "size": 1,
+      "type": "u8",
+      "interpretation": "sem interpretação",
+      "status": "DESCONHECIDO",
+      "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
     }
   ]
 }

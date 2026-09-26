@@ -21,7 +21,7 @@ ORIGINS = ("manual", "regras", "IA", "script")
 @dataclass
 class Operation:
     id: int
-    kind: str                     # field | raw | graphic
+    kind: str                     # field | raw | graphic | text
     target: str                   # "weapons[182].attack", "SLUS_009.40+0x3000", "gráfico DATA/X.BIN+0x40"
     before: object                # int (field) ou hex (raw/graphic)
     after: object
@@ -40,12 +40,15 @@ class Operation:
     graphic_kind: str | None = None
     palette_index: int = 0
     clut_pos: list[int] | None = None
+    payload: str | None = None    # text: bytes exatos gravados (hex)
 
     def to_edit(self):
         if self.kind == "field":
             return FieldEdit(self.table, self.index, self.field, self.after)
         if self.kind == "raw":
             return RawEdit(self.file, self.offset, bytes.fromhex(self.after))
+        if self.kind == "text":  # bytes gravados ficam em `payload` (texto + NUL até o tamanho original)
+            return RawEdit(self.file, self.offset, bytes.fromhex(self.payload))
         return GraphicEdit(self.file, self.offset, bytes.fromhex(self.before), bytes.fromhex(self.after),
                            self.graphic_kind, self.palette_index, tuple(self.clut_pos) if self.clut_pos else None)
 
@@ -151,6 +154,28 @@ class ChangeSet:
         return self._record(Operation(0, "raw", f"{file}+0x{offset:X}", before.hex().upper(), data.hex().upper(),
                                       origin, None, experimental=True, file=file, offset=offset))
 
+    def set_name(self, table: str, index: int, text: str, origin: str = "manual") -> Operation:
+        """Troca o nome no mesmo espaço (mesmo tamanho ou menor, completando com NUL).
+
+        Nomes cujo finding ainda é HIPOTESE/DESCONHECIDO só no Modo Pesquisa.
+        """
+        from inverse_engine.research.names import encode_name
+        image, profile, findings, research = self._ctx()
+        t = profile.table(table)
+        if findings is not None:
+            pol = findings.policy(t.names_finding, research)
+            if not pol.editable:
+                raise PatchError(f"nomes de {table}: {pol.reason}")
+        data = image.read_file(t.file) if image.disc else image.data
+        off, old, new = encode_name(t, data, index, text)
+        before = old.decode("ascii")
+        for op in self.ops:  # "antes" considera trocas anteriores do mesmo nome
+            if op.kind == "text" and op.file == t.file and op.offset == off:
+                before = op.after
+        return self._record(Operation(0, "text", f"{table}[{index}].nome", before, text, origin, t.names_finding,
+                                      file=t.file, offset=off, table=table, index=index, field="nome",
+                                      payload=new.hex().upper()))
+
     def set_graphic(self, edit: GraphicEdit, origin: str = "manual") -> Operation:
         return self._record(Operation(0, "graphic", f"gráfico {edit.file}+0x{edit.offset:X}",
                                       edit.original.hex().upper(), edit.new.hex().upper(), origin, None,
@@ -194,9 +219,9 @@ class ChangeSet:
         last: dict[tuple[str, str], Operation] = {}
         for op in self.ops:
             last[(op.kind, op.target)] = op
-        by_kind = {"field": [], "graphic": [], "raw": []}
+        by_kind = {"field": [], "graphic": [], "raw": [], "text": []}
         for (kind, _), op in last.items():
-            by_kind[kind].append(op)
+            by_kind["field" if kind == "text" else kind].append(op)  # nomes vão na camada changeset
         out = []
         for kind, layer_kind, suffix in (("field", "changeset", ""), ("graphic", "graphics", " (gráficos)"),
                                          ("raw", "raw", " (bytes crus)")):

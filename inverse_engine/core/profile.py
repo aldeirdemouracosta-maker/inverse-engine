@@ -49,6 +49,8 @@ class TableSpec:
     names_finding: str | None = None
     groups: list[dict] = field(default_factory=list)
     integrity_sha256: str | None = None
+    names_shift: int = 0              # registro i usa o ponteiro i + shift (só depois de confirmado)
+    names_status: str | None = None   # estado da hipótese dos nomes (informativo)
 
     @classmethod
     def from_json(cls, name: str, d: dict) -> "TableSpec":
@@ -63,7 +65,8 @@ class TableSpec:
         pt = names.get("pointer_table")
         return cls(name, d["file"], hexint(d["offset"]), d["stride"], d["count"], fields,
                    d.get("finding"), hexint(pt) if pt is not None else None,
-                   names.get("finding"), d.get("groups", []), d.get("integrity_sha256"))
+                   names.get("finding"), d.get("groups", []), d.get("integrity_sha256"),
+                   int(names.get("shift", 0)), names.get("status"))
 
     @property
     def end(self) -> int:
@@ -89,7 +92,7 @@ class TableSpec:
         """Nome pela matriz de ponteiros (u32le, endereço de RAM). None se não resolver."""
         if self.names_pointer_table is None or not 0 <= index < self.count:
             return None
-        ptr_at = self.names_pointer_table + index * 4
+        ptr_at = self.names_pointer_table + (index + self.names_shift) * 4
         if ptr_at + 4 > len(data):
             return None
         ptr = struct.unpack_from("<I", data, ptr_at)[0]
@@ -104,6 +107,25 @@ class TableSpec:
             return raw.decode("ascii")
         except UnicodeDecodeError:
             return None
+
+    def name_slot(self, data: bytes, index: int) -> tuple[int, int] | None:
+        """(offset no arquivo, bytes do texto atual sem o NUL) do nome; espaço máximo para editar sem realocar."""
+        if self.names_pointer_table is None or not 0 <= index < self.count:
+            return None
+        ptr = struct.unpack_from("<I", data, self.names_pointer_table + (index + self.names_shift) * 4)[0]
+        try:
+            off = PsExe.parse(data).ram_to_file(ptr)
+        except ValueError:
+            return None
+        if not 0 <= off < len(data):
+            return None
+        return off, len(data[off:off + NAME_MAX].split(b"\x00", 1)[0])
+
+    def integrity(self, data: bytes) -> bool | None:
+        """Confere o hash da tabela (None quando o perfil não tem hash para ela)."""
+        if not self.integrity_sha256:
+            return None
+        return hashlib.sha256(data[self.offset:self.end]).hexdigest() == self.integrity_sha256.lower()
 
     def category(self, index: int) -> str | None:
         for g in self.groups:

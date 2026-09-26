@@ -69,6 +69,12 @@ def json_status(path):
     return {f["id"]: f["status"] for f in json.loads(path.read_text(encoding="utf-8"))["findings"]}
 
 
+def repo_profile_shift(table):
+    import json
+    d = json.loads((Path(__file__).resolve().parent.parent / "profiles" / "SLUS-00940-USA.json").read_text())
+    return d["tables"][table].get("names", {}).get("shift", 0)
+
+
 @unittest.skipUnless(HAS_QT, "PySide6 indisponível")
 class UiTest(unittest.TestCase):
     def setUp(self):
@@ -233,6 +239,46 @@ class UiTest(unittest.TestCase):
         self.assertTrue(ws.recolor_test().image.exists())
         repo = json_status(Path(__file__).resolve().parent.parent / "research" / "findings" / "SLUS-00940-USA.json")
         self.assertEqual(repo["F-0011"], "PROVAVEL")  # repositório intocado
+
+    def test_habilidades_nomes_e_bytes_crus(self):
+        import shutil
+        from tests.test_tables_names import make_full_slus
+        from tests.fixture_cd import CdBuilder
+        root = Path(self.tmp.name)
+        for sub, src in (("perfis", "profiles/SLUS-00940-USA.json"), ("findings", "research/findings/SLUS-00940-USA.json")):
+            (root / sub).mkdir()
+            shutil.copy(Path(__file__).resolve().parent.parent / src, root / sub)
+        b = root / "tabelas.bin"
+        b.write_bytes(CdBuilder().build({"SLUS_009.40": make_full_slus()}))
+        p = self.app.start_project(b, root / "p4", "Tabelas")
+        p.findings_dir, p.profiles_dir = root / "findings", root / "perfis"  # nunca gravar no repositório
+        ws = self.app.workspace
+        ws.load_project(p)
+        ws.table_combo.setCurrentText("skills")
+        self.assertEqual(ws.grid.columnCount(), 3)                     # sem campos e sem Modo Pesquisa
+        self.assertEqual(ws.grid.item(0, 1).text(), "Tecnica000")
+        self.assertFalse(ws.grid.item(0, 1).flags() & Qt.ItemIsEditable)  # nomes em hipótese
+        ws.research.setChecked(True)
+        self.assertEqual(ws.grid.columnCount(), 3 + 18)
+        ws.grid.item(10, 3 + 5).setText("99")
+        op = p.changesets["Alterações"].ops[-1]
+        self.assertEqual((op.kind, op.target), ("raw", "SLUS_009.40+0x%X" % (0x15D4C + 18 * 10 + 5)))
+        self.assertEqual(ws.grid.item(10, 3 + 5).text(), "99")
+        ws.grid.item(10, 3 + 5).setText("300")                        # byte cru só 0..255
+        self.assertIn("Recusado", ws.log_view.toPlainText())
+        rep = ws.names_report()
+        self.assertEqual((rep.pointer_count, rep.record_count), (204, 203))
+        self.assertFalse(ws.names_confirm("skills", 1, "conferi", confirmed=False))
+        self.assertTrue(ws.names_confirm("skills", 1, "nomes conferidos no menu", confirmed=True))
+        self.assertEqual(ws.grid.item(0, 1).text(), "Tecnica001")
+        self.assertEqual(repo_profile_shift("skills"), 0)                 # repositório intocado
+        ws.table_combo.setCurrentText("weapons")
+        ws.research.setChecked(False)
+        ws.grid.item(182, 1).setText("Rodex")
+        self.assertEqual(p.changesets["Alterações"].ops[-1].target, "weapons[182].nome")
+        ws.grid.item(182, 1).setText("NomeGrandeDemais")
+        self.assertIn("realocar", ws.log_view.toPlainText())
+        self.assertEqual(ws.grid.item(182, 1).text(), "Rodex")
 
     def test_sem_perfil_so_formatos_genericos(self):
         other = Path(self.tmp.name) / "outro.bin"

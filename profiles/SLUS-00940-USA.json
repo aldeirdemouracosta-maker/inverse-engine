@@ -145,7 +145,8 @@
           "type": "u16le",
           "finding": "F-0016"
         }
-      }
+      },
+      "integrity_sha256": "5bf7dbf0933309437cbd79476e77a14057ea2ed4bb0f3e086b9a1c3a52d2b06f"
     },
     "skills": {
       "file": "SLUS_009.40",
@@ -159,6 +160,20 @@
         "finding": "S-0002"
       },
       "integrity_sha256": "cfd77b35c2bc07e0d8e48bd791f5c7bf2affa58870c583b1af06242aff90186b",
+      "fields": {}
+    },
+    "armors": {
+      "file": "SLUS_009.40",
+      "offset": "0x16FA4",
+      "stride": 26,
+      "count": 158,
+      "finding": "A-0001",
+      "names": {
+        "pointer_table": "0x16D2C",
+        "status": "HIPOTESE",
+        "finding": "A-0002"
+      },
+      "integrity_sha256": "f51ae2dc8ebfeb70f31f01b0ddd17bad22ba5fe2359c0a405d9093d5d3e61fc2",
       "fields": {}
     }
   }

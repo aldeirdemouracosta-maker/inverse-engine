@@ -80,6 +80,7 @@ class Workspace(QMainWindow):
         top.addWidget(QLabel("Tabela:"))
         top.addWidget(self.table_combo)
         top.addWidget(self.research)
+        top.addWidget(_btn("&Nomes…", self.names_dialog, "Analisa a matriz de ponteiros de nomes (nada é gravado sem confirmar)"))
         top.addStretch(1)
         v.addLayout(top)
         self.grid = QTableWidget()
@@ -394,63 +395,160 @@ class Workspace(QMainWindow):
         name = self.table_combo.currentText()
         self.grid.blockSignals(True)
         self.grid.clear()
+        self._cols: list[tuple] = []
         if not prof or not name:
             self.grid.setRowCount(0)
             self.grid.blockSignals(False)
             return
         t = prof.table(name)
         findings = self.project.findings()
+        research = self.project.research_mode
         cs = self.cs()
         data = self.image.read_file(t.file) if self.image.disc else self.image.data
-        fields = list(t.fields)
-        self.grid.setColumnCount(3 + len(fields))
-        headers = ["id", "nome", "grupo"]
+        name_pol = findings.policy(t.names_finding, research) if findings else None
+        headers = ["id", "nome" + (f"\n({name_pol.badge})" if name_pol and name_pol.badge else ""), "grupo"]
+        self._cols = [("id",), ("name",), ("group",)]
         policies = {}
-        for f in fields:
-            pol = findings.policy(t.fields[f].finding, self.project.research_mode) if findings else None
+        for f in t.fields:
+            pol = findings.policy(t.fields[f].finding, research) if findings else None
             policies[f] = pol
-            badge = f"\n({pol.badge})" if pol and pol.badge else ""
-            headers.append(f + badge)
+            headers.append(f + (f"\n({pol.badge})" if pol and pol.badge else ""))
+            self._cols.append(("field", f))
+        if research:  # Modo Pesquisa: bytes sem campo aparecem como byte cru editável
+            covered = {f.offset + k for f in t.fields.values() for k in range(f.size)}
+            for rel in range(t.stride):
+                if rel not in covered:
+                    headers.append(f"byte_0x{rel:02X}\n(cru)")
+                    self._cols.append(("byte", rel))
+        self.grid.setColumnCount(len(headers))
         self.grid.setHorizontalHeaderLabels(headers)
         self.grid.setRowCount(t.count)
+        names_now = {(o.table, o.index): o.after for o in cs.ops if o.kind == "text"}
+        raw_now = {}
+        for o in cs.ops:
+            if o.kind == "raw":
+                for k, b in enumerate(bytes.fromhex(o.after)):
+                    raw_now[o.offset + k] = b
         for i in range(t.count):
-            for col, val in enumerate((str(i), t.read_name(data, i) or "", t.category(i) or "")):
+            for c, col in enumerate(self._cols):
+                editable = True
+                tip = ""
+                if col[0] == "id":
+                    val, editable = str(i), False
+                elif col[0] == "name":
+                    val = names_now.get((name, i), t.read_name(data, i) or "")
+                    if t.names_pointer_table is None or (name_pol and not name_pol.editable):
+                        editable, tip = False, name_pol.reason if name_pol else "sem nomes no perfil"
+                elif col[0] == "group":
+                    val, editable = t.category(i) or "", False
+                elif col[0] == "field":
+                    val = str(cs.current_field(name, i, col[1]))
+                    pol = policies[col[1]]
+                    if pol is not None and not pol.editable:
+                        editable, tip = False, pol.reason
+                else:
+                    off = t.record_offset(i) + col[1]
+                    val = str(raw_now.get(off, data[off]))
                 it = QTableWidgetItem(val)
-                it.setFlags(it.flags() & ~Qt.ItemIsEditable)
-                self.grid.setItem(i, col, it)
-            for k, f in enumerate(fields):
-                it = QTableWidgetItem(str(cs.current_field(name, i, f)))
-                pol = policies[f]
-                if pol is not None and not pol.editable:
+                if not editable:
                     it.setFlags(it.flags() & ~Qt.ItemIsEditable)
-                    it.setToolTip(pol.reason)
-                self.grid.setItem(i, 3 + k, it)
+                if tip:
+                    it.setToolTip(tip)
+                self.grid.setItem(i, c, it)
         self.grid.resizeColumnsToContents()
         self.grid.blockSignals(False)
-        if not fields:
-            self.log(f"Tabela {name}: nenhum campo com evidência; use o Modo Pesquisa (marco 6) para bytes crus")
+        if not t.fields and not research:
+            self.log(f"Tabela {name}: nenhum campo com evidência; ligue o Modo Pesquisa para ver os bytes crus")
 
     def _cell_changed(self, item: QTableWidgetItem) -> None:
-        col = item.column()
-        if col < 3:
-            return
+        col = self._cols[item.column()]
         name = self.table_combo.currentText()
         t = self.project.profile().table(name)
-        field = list(t.fields)[col - 3]
         index = item.row()
         cs = self.cs()
         try:
-            value = int(item.text(), 0)
-            op = cs.set_field(name, index, field, value)
+            if col[0] == "field":
+                value = int(item.text(), 0)
+                op = cs.set_field(name, index, col[1], value)
+                cmd = terminal.campo(self.project.path, name, index, col[1], value)
+            elif col[0] == "name":
+                op = cs.set_name(name, index, item.text())
+                cmd = terminal.projeto("nome", self.project.path, name, str(index), item.text())
+            elif col[0] == "byte":
+                value = int(item.text(), 0)
+                if not 0 <= value <= 255:
+                    raise ValueError("byte cru vai de 0 a 255")
+                op = cs.set_raw(t.file, t.record_offset(index) + col[1], bytes([value]))
+                cmd = None
+            else:
+                return
             self.project.save()
-            self.log(f"{op.target}: {op.before} → {op.after}",
-                     terminal.campo(self.project.path, name, index, field, value))
+            self.log(f"{op.target}: {op.before} → {op.after}", cmd)
         except (ValueError, PatchError) as e:
             self.log(f"Recusado: {e}")
-            self.grid.blockSignals(True)
-            item.setText(str(cs.current_field(name, index, field)))
-            self.grid.blockSignals(False)
+            self.fill_table()
         self.refresh_all()
+
+    def names_report(self):
+        from inverse_engine.research import names
+        t = self.project.profile().table(self.table_combo.currentText())
+        data = self.image.read_file(t.file) if self.image.disc else self.image.data
+        return names.analyze(t, data)
+
+    def names_dialog(self) -> None:
+        """Mostra a análise dos ponteiros de nomes e as amostras de cada hipótese antes de gravar."""
+        from inverse_engine.research import names
+        try:
+            rep = self.names_report()
+        except (names.NamesError, ValueError) as e:
+            self.log(f"Nomes: {e}")
+            return
+        lines = [rep.summary(), ""]
+        for h in rep.hypotheses:
+            lines.append(f"shift {h.shift}: {h.description}")
+            lines += [f"   [{i}] {n or '(sem nome)'}" for i, n in h.samples]
+            if h.records_without_name:
+                lines.append(f"   registros sem nome: {h.records_without_name[:10]}")
+        self.log(rep.summary(), f"{terminal.CLI} nomes {terminal.q(self.image.path)} {rep.table}")
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f"Nomes de {rep.table}")
+        form = QFormLayout(dlg)
+        view = QPlainTextEdit("\n".join(lines))
+        view.setReadOnly(True)
+        view.setFont(MONO)
+        view.setAccessibleName("Análise dos ponteiros de nomes")
+        form.addRow(view)
+        shift = QComboBox()
+        shift.setAccessibleName("Alinhamento a gravar")
+        shift.addItems([str(h.shift) for h in rep.hypotheses])
+        ev = QLineEdit()
+        ev.setAccessibleName("Evidência do alinhamento")
+        ev.setPlaceholderText("ex.: nomes 0..5 conferidos no menu do jogo")
+        ok = QCheckBox("Conferi as amostras e quero gravar este alinhamento no perfil")
+        ok.setAccessibleName("Confirmo o alinhamento")
+        form.addRow("Shift:", shift)
+        form.addRow("Evidência:", ev)
+        form.addRow(ok)
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        bb.accepted.connect(dlg.accept)
+        bb.rejected.connect(dlg.reject)
+        form.addRow(bb)
+        dlg.resize(760, 560)
+        if dlg.exec() == QDialog.Accepted:
+            self.names_confirm(rep.table, int(shift.currentText()), ev.text(), ok.isChecked())
+
+    def names_confirm(self, table: str, shift: int, evidence: str, confirmed: bool) -> bool:
+        from inverse_engine.research import names
+        try:
+            names.confirm_shift(self.project.profiles_dir / f"{self.project.profile_id}.json", table, shift,
+                                self.findings_db, evidence, confirmed)
+        except names.NamesError as e:
+            self.log(f"Recusado: {e}")
+            return False
+        self.log(f"Alinhamento dos nomes de {table} gravado: shift {shift}")
+        self.fill_table()
+        self.fill_findings()
+        return True
 
     def _record_selected(self, row: int) -> None:
         if row < 0 or not self.project or not self.project.profile():

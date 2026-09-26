@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## Marco 7 — tabelas genéricas, habilidades e armaduras
+- Perfil: armaduras (0x16FA4, 26 bytes, 158 registros, nomes em 0x16D2C, hash do LVCP) e hash de
+  integridade por tabela; findings A-0001 (geometria PROVAVEL), A-0002 (nomes HIPOTESE) e um
+  DESCONHECIDO por byte do registro
+- `research/names.py`: análise da matriz de ponteiros (quantidade entre a matriz e a tabela,
+  sequências válidas, entradas inválidas, divergência, amostras por hipótese de alinhamento);
+  `confirm_shift` só grava com confirmação + evidência; `encode_name` recusa texto maior
+- `TableSpec`: `names_shift`, `name_slot`, `integrity`
+- ChangeSet `set_name` (nomes em HIPOTESE só no Modo Pesquisa); relatório mostra antes/depois do texto
+- Aba Tabelas: nome editável, bytes sem campo como colunas de byte cru no Modo Pesquisa, botão Nomes…
+- CLI `nomes [--gravar-shift N --evidencia ... --confirmo]`, `projeto nome`
+
 ## Marco 6 — Modo Pesquisa
 - `research/profiler.py`: estatísticas de cada posição (u8 e u16le): mín/máx, distintos, zeros,
   múltiplos de 10 e 5, crescimento dentro dos grupos, notas

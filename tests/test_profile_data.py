@@ -51,6 +51,12 @@ class ProfileDataTest(unittest.TestCase):
         for k in ident["required"] + ident["table_integrity"]:
             self.assertIn(k, kinds)
 
+    def test_armaduras_sem_nomes_de_campo(self):
+        self.assertEqual(self.profile["tables"]["armors"]["fields"], {})
+        for i in range(26):
+            self.assertEqual(self.findings["A-%04d" % (0x10 + i)]["status"], "DESCONHECIDO")
+        self.assertEqual(self.findings["A-0002"]["status"], "HIPOTESE")
+
     def test_habilidades_sem_nomes_de_campo(self):
         self.assertEqual(self.profile["tables"]["skills"]["fields"], {})
         for i in range(18):

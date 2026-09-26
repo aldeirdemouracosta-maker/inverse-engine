@@ -114,8 +114,8 @@ def build_report(project: Project, stack, result, paths: dict[str, Path], patch:
     for cs in project.changesets.values():
         for o in cs.ops:
             ops.append({"changeset": cs.name, "id": o.id, "grupo": o.group, "alvo": o.target,
-                        "antes": o.before if o.kind == "field" else f"{len(o.before) // 2} bytes",
-                        "depois": o.after if o.kind == "field" else f"{len(o.after) // 2} bytes",
+                        "antes": o.before if o.kind in ("field", "text") else f"{len(o.before) // 2} bytes",
+                        "depois": o.after if o.kind in ("field", "text") else f"{len(o.after) // 2} bytes",
                         "origem": o.origin, "finding": o.finding,
                         "estado": findings.status(o.finding) if (findings and o.finding) else None,
                         "experimental": o.experimental, "ativa": cs.active})
