@@ -27,8 +27,25 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
 4. Descoberta comprovada e hipótese nunca se misturam.
 5. Este repositório **não contém** o jogo, BIOS, patches de terceiros nem texto de guias.
 
+## Modo terminal
+
+```bash
+python3 -m inverse_engine.cli abrir  "Vandal Hearts II (USA).cue"   # arquivos + âncoras
+python3 -m inverse_engine.cli tabela "Vandal Hearts II (USA).cue" weapons --id 182
+python3 -m inverse_engine.cli findings
+python3 -m unittest discover -s tests -t .                           # testes (sintéticos)
+```
+
 ## Estado
 
-Marco 0: estrutura, perfil e findings iniciais. O código da v1.1 do VH2 Studio
-(`vh2_rom_editor.py`, `vh2_disc.py`, `vh2_tim.py`, `ppf.py`, `bps_patch.py`,
-`vh2_studio.py`, `tests/`) entra a seguir e é migrado para `inverse_engine/`.
+| Marco | Situação |
+|---|---|
+| 1. RomImage + RomProfile + findings | feito: BIN/CUE/executável avulso, ISO9660 com subpastas, Form 2 marcado, offset ↔ LBA ↔ BIN, âncoras, tabelas genéricas, política de edição por estado |
+| 2. PatchStack + conflitos + EDC/ECC | próximo |
+| 3–14 | pendentes |
+
+`legado/VH2-PS1-Studio-v3.0/` guarda a versão 3.0-alpha (Tkinter) sem alterações, como
+referência. O código da v1.1 do VH2 Studio (EDC/ECC, PPF, BPS, TIM sem Pillow) foi perdido;
+essas partes são reescritas nos marcos seguintes, com testes sintéticos novos.
+Não existe `items.json` para migrar: os findings iniciais foram registrados direto em
+`research/findings/SLUS-00940-USA.json`.

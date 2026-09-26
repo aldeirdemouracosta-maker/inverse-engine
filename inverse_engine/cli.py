@@ -1,0 +1,105 @@
+"""Modo terminal do Inverse Engine (diagnóstico).
+
+    python -m inverse_engine.cli abrir  IMAGEM          # arquivos do CD + âncoras de todos os perfis
+    python -m inverse_engine.cli tabela IMAGEM weapons   # registros da tabela (perfil que se aplica)
+    python -m inverse_engine.cli findings                # resumo do banco de descobertas
+"""
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+from inverse_engine.core.profile import RomProfile, match_profiles
+from inverse_engine.core.rom_image import RomImage
+from inverse_engine.research.findings import FindingsDB
+
+ROOT = Path(__file__).resolve().parent.parent
+PROFILES = ROOT / "profiles"
+FINDINGS = ROOT / "research" / "findings"
+
+
+def cmd_abrir(args) -> int:
+    image = RomImage.open(args.imagem)
+    print(f"Imagem: {image.path}  ({image.kind}, {len(image.data)} bytes)")
+    print(f"SHA-256: {image.sha256}")
+    if image.disc is not None:
+        print(f"Volume: {image.disc.volume_id}  setores: {image.disc.sector_count}")
+        for f in image.list_files():
+            tag = "pasta" if f.is_dir else ("Form 2 (XA, só listado)" if f.form2 else f"{f.size} bytes")
+            print(f"  LBA {f.lba:>6}  {f.path:<40} {tag}")
+        odd = [x for x in image.non_data_sectors() if x[1] != "mode2_form2"]
+        if odd:
+            print(f"Aviso: {len(odd)} setores fora de Mode 1/Mode 2 tratados como bytes crus")
+    exe = image.find_executable()
+    print(f"Executável PS-X EXE: {exe or 'não encontrado'}")
+    profiles = RomProfile.load_all(args.perfis)
+    for m in match_profiles(image, profiles):
+        print(f"\nPerfil {m.profile_id}: {m.summary()}")
+        if m.known_image:
+            print(f"  imagem conhecida: {m.known_image}")
+        for a in m.anchors:
+            print(f"  [{'OK ' if a.ok else 'FALHOU'}] {a.type:<13} {a.detail}" + (f"  — {a.meaning}" if a.meaning else ""))
+    return 0
+
+
+def cmd_tabela(args) -> int:
+    image = RomImage.open(args.imagem)
+    profiles = RomProfile.load_all(args.perfis)
+    match = next((m for m in match_profiles(image, profiles) if m.applies), None)
+    if match is None:
+        print("Nenhum perfil se aplica a esta imagem: tabelas indisponíveis.", file=sys.stderr)
+        return 2
+    profile = next(p for p in profiles if p.profile_id == match.profile_id)
+    if not match.integrity_ok:
+        print("AVISO: a âncora de integridade falhou; a tabela foi alterada por algum patch base.")
+    table = profile.table(args.tabela)
+    findings = _findings_for(profile.profile_id)
+    data = image.read_file(table.file)
+    ids = [args.id] if args.id is not None else range(table.count)
+    cols = list(table.fields)
+    print("id   " + "nome".ljust(18) + "".join(c[:12].rjust(13) for c in cols))
+    print("     " + "".ljust(18) + "".join(findings.status(table.fields[c].finding)[:12].rjust(13) for c in cols))
+    for i in ids:
+        name = table.read_name(data, i) or ""
+        vals = "".join(str(table.read_field(data, i, c)).rjust(13) for c in cols)
+        print(f"{i:<5}{name[:17]:<18}{vals}")
+    return 0
+
+
+def cmd_findings(args) -> int:
+    for p in sorted(Path(args.pasta).glob("*.json")):
+        db = FindingsDB.load(p)
+        print(f"{p.name}: " + ", ".join(f"{k} {v}" for k, v in db.by_status().items()))
+        for f in db.findings.values():
+            print(f"  {f['id']:<7} {f['status']:<13} {f['subject']}")
+    return 0
+
+
+def _findings_for(profile_id: str) -> FindingsDB:
+    p = FINDINGS / f"{profile_id}.json"
+    return FindingsDB.load(p) if p.exists() else FindingsDB({"findings": []})
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(prog="inverse_engine", description="Inverse Engine — modo terminal")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    a = sub.add_parser("abrir", help="lista arquivos e avalia as âncoras dos perfis")
+    a.add_argument("imagem")
+    a.add_argument("--perfis", default=str(PROFILES))
+    a.set_defaults(func=cmd_abrir)
+    t = sub.add_parser("tabela", help="mostra registros de uma tabela do perfil")
+    t.add_argument("imagem")
+    t.add_argument("tabela")
+    t.add_argument("--id", type=lambda s: int(s, 0))
+    t.add_argument("--perfis", default=str(PROFILES))
+    t.set_defaults(func=cmd_tabela)
+    f = sub.add_parser("findings", help="resumo do banco de descobertas")
+    f.add_argument("--pasta", default=str(FINDINGS))
+    f.set_defaults(func=cmd_findings)
+    args = ap.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
