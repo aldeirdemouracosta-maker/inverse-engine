@@ -59,6 +59,7 @@ class Project:
     changesets: dict[str, ChangeSet] = field(default_factory=dict)
     acknowledged: list[str] = field(default_factory=list)    # conflitos reconhecidos (P4)
     output: dict = field(default_factory=lambda: {"folder": "saida", "name": ""})
+    ui: dict = field(default_factory=dict)                   # layout dos painéis etc. (interface)
     profiles_dir: Path = field(default=ROOT / "profiles", compare=False)
     findings_dir: Path = field(default=ROOT / "research" / "findings", compare=False)
 
@@ -200,7 +201,7 @@ class Project:
             "order": self.order,
             "patches": [vars(r).copy() for r in self.patches.values()],
             "changesets": [c.to_dict() for c in self.changesets.values()],
-            "acknowledged": self.acknowledged, "output": self.output,
+            "acknowledged": self.acknowledged, "output": self.output, "ui": self.ui,
         }
 
     def save(self, path: str | Path | None = None) -> Path:
@@ -225,6 +226,7 @@ class Project:
         p.changesets = {c["name"]: ChangeSet.from_dict(c) for c in d.get("changesets", [])}
         p.acknowledged = d.get("acknowledged", [])
         p.output = d.get("output", p.output)
+        p.ui = d.get("ui", {})
         names = {o["name"] for o in p.order}
         if names != set(p.patches) | set(p.changesets):
             raise ProjectError("ordem das camadas não confere com as camadas do projeto")

@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## Marco 5 — interface PySide6
+- AppState com MainMenuState e EditorWorkspaceState (QStackedWidget); `python3 -m inverse_engine.ui.app`
+- Menu inicial: iniciar projeto, abrir imagem (mostra âncoras), abrir projeto, opções (tema e fonte),
+  recentes com estatísticas; cheats/3D/áudio desativados com o marco em que chegam
+- Workspace com QDockWidget: arquivos do CD (tipo pelo conteúdo), inspetor em hexa, camadas e
+  conflitos (ativar, ordenar, adicionar PPF/BPS, reconhecer P4), histórico (Ctrl+Z/Ctrl+Y),
+  console com log e Terminal equivalente; layout salvo por projeto
+- Abas: Tabelas (edição respeita a política de findings; Modo Pesquisa), Gráficos (TIMs, prévia,
+  exportar PNG, importar desenho/cores), Exportar (revisão P2, emulador), Sistema (ferramentas)
+- Temas simples e fantasia com checagem automática de contraste WCAG AA; arte de fundo é arquivo
+  do usuário (não vem no repositório); tarefas longas em QThread
+
 ## Marco 4 — exportação, relatório e hexa
 - `core/export.py`: BIN nova + BPS contra a original + CUE + relatório .md/.json (âncoras, camadas com
   hash, operações com estado do finding, faixas com arquivo/LBA/RAM/campo, conflitos reconhecidos,

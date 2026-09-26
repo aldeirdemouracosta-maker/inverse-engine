@@ -1,0 +1,11 @@
+{
+  "nome": "fantasia",
+  "descricao": "Arte de fundo (arquivo do usuário) com painéis sólidos",
+  "cores": {
+    "fundo": "#1B1026", "painel": "#2A1B3D", "texto": "#FFF4E0", "texto_suave": "#E0CFE9",
+    "botao": "#4A2F6B", "botao_texto": "#FFF4E0", "destaque": "#F0B35A", "destaque_texto": "#1B1026",
+    "foco": "#F0B35A", "erro": "#FF9E9E", "ok": "#9BE89B", "aviso": "#F0B35A", "borda": "#8A6FB0"
+  },
+  "fundo_arte": "fantasia_fundo.png",
+  "nota_arte": "Coloque aqui só arte original (sua ou gerada por IA). Nunca imagens extraídas de jogos."
+}

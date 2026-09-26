@@ -1,7 +1,7 @@
 # Prompt para o Codex — terminar o Inverse Engine (VH2 Studio como primeiro perfil)
 
 Repositório: https://github.com/aldeirdemouracosta-maker/inverse-engine (branch `main`).
-**Os marcos 1 a 4 (todo o núcleo) estão prontos. Comece pelo marco 5 (interface PySide6).**
+**Os marcos 1 a 5 (núcleo + interface PySide6) estão prontos. Comece pelo marco 6 (Modo Pesquisa).**
 Trabalhe **nesse repositório**, marco por marco, com um commit por marco e todos os testes passando.
 
 ## 0. Leia antes de começar
@@ -29,12 +29,12 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
 - O código da **v1.1 do VH2 Studio foi perdido** (`vh2_disc.py`, `vh2_tim.py`, `ppf.py`, `bps_patch.py`,
   `vh2_rom_editor.py`, `vh2_studio.py` e as 137 verificações). **Não procure por ele.** EDC/ECC, PPF, BPS,
   TIM/PNG, camadas, ChangeSet, projeto, exportação, relatório e hexa já foram reescritos nos marcos 2 a 4;
-  o resto (janela PySide6, Modo Pesquisa etc.) é escrito nos marcos 5 em diante.
+  a interface PySide6 foi feita no marco 5; o resto (Modo Pesquisa etc.) é escrito nos marcos 6 em diante.
 - `legado/VH2-PS1-Studio-v3.0/` guarda a v3.0-alpha (Tkinter + Pillow + IPS). **Não altere essa pasta** e não a
   importe no núcleo. Pode servir de referência de ideias: busca por valor/hex com curinga `??`/texto
   Shift-JIS, ChangeSet com undo/redo, prévia de aparência (direções, animação, GIF), prévia de falas com
   retrato. O que for aproveitado é **reescrito** no núcleo novo (sem Pillow) e na interface PySide6.
-- Os **marcos 1 a 4 estão prontos** (ver 0.2): 120 testes passando. Continue do **marco 5**.
+- Os **marcos 1 a 5 estão prontos** (ver 0.2): 131 testes passando. Continue do **marco 6**.
 
 ### 0.1 Estrutura do repositório
 ```
@@ -45,11 +45,11 @@ inverse_engine/
   research/  findings.py                        (pronto)   profiler.py gabarito.py cheats.py (fazer)
   assistant/ rules.py ollama.py context.py      (fazer)
   scripting/ api.py console.py                  (fazer)
-  ui/        app.py main_menu.py workspace.py panels/ themes/   (fazer)
+  ui/        app.py main_menu.py workspace.py worker.py theme.py terminal.py recent.py themes/*.json (prontos)
 profiles/SLUS-00940-USA.json          perfil (armas + habilidades)
 research/findings/SLUS-00940-USA.json findings iniciais (F-0001…F-0016, S-0001…S-0003, S-0010…S-0021)
 tests/  fixture_cd.py  test_rom_image.py  test_profile_anchors.py  test_profile_data.py
-        test_edc_ecc.py  test_ppf_bps.py  test_tim_png.py  test_patch_stack.py  test_changeset_project.py  test_export_hexview.py
+        test_edc_ecc.py  test_ppf_bps.py  test_tim_png.py  test_patch_stack.py  test_changeset_project.py  test_export_hexview.py  test_ui.py
 legado/ VH2-PS1-Studio-v3.0 (somente referência)
 .github/workflows/tests.yml  (ubuntu-latest, Python 3.10 e 3.12, QT_QPA_PLATFORM=offscreen, PySide6)
 ```
@@ -118,7 +118,22 @@ Rodar os testes: `python -m unittest discover -s tests -t .` (sempre com `-t .`;
 - `inverse_engine.__version__` = "0.4.0" (suba a cada marco).
 - CLI: `abrir`, `tabela`, `findings`, `tims`, `ppf`, `registro`, `reproduzir`,
   `projeto novo|patch|campo|desfazer|refazer|mostrar|hexa|reconhecer|exportar`.
-  A interface do marco 5 deve mostrar no painel "Terminal equivalente" exatamente esses comandos.
+- `core/filetypes.py`: `detect(bytes_iniciais, form2, is_dir)` → tipo pelo conteúdo.
+- Interface (marco 5, PySide6): `ui/app.py` `App` (QStackedWidget com `MainMenu` e `Workspace`; `start_project(imagem,
+  pasta, nome)`, `open_image`, `open_project`, `options`), `ui/workspace.py` `Workspace` (docks "Arquivos do CD",
+  "Inspetor", "Camadas e conflitos", "Histórico", "Console" com "Terminal equivalente"; abas Tabelas, Gráficos,
+  Exportar, Sistema; `log(texto, comando)`, `cs()`, `refresh_all()`, `fill_table()`, `scan_tims(sync)`,
+  `import_png(tipo, arquivo)`, `add_patch(arquivo)`, `acknowledge_dialog(auto_accept)`, `review_and_export(auto_confirm)`,
+  `undo/redo`, `go_back`), `ui/worker.py` (`Task` QThread com progresso/cancelamento, `run_sync`), `ui/theme.py`
+  (`contrast`, `check` WCAG AA, `stylesheet`), `ui/terminal.py` (comando de cada ação), `ui/recent.py` (recentes e
+  opções em `~/.config/inverse_engine`, `INVERSE_ENGINE_CONFIG` nos testes).
+  **Regras para abas novas:** cada módulo novo vira uma aba ou dock no `Workspace` e um botão do menu (os botões
+  "Criar cheats", "Modelos 3D" e "Áudio e texturas" já existem desativados: ative-os no marco correspondente);
+  todo controle com `setAccessibleName`; todo botão ligado a uma ação; toda ação registra `log(texto, comando)`
+  com o comando equivalente do CLI (acrescente o subcomando no `cli.py`); tarefas longas em `Task`;
+  `tests/test_ui.py` já confere nomes acessíveis e botões sem ação — acrescente os fluxos novos lá.
+  Ainda não feito na interface: aba Assistente (marco 12), Modo Pesquisa completo (marco 6), .iso de 2048 bytes
+  (só BIN 2352, CUE e executável avulso são aceitos).
 
 Se precisar mudar uma dessas APIs, adapte os testes **mantendo a mesma verificação**. Nunca apague nem
 enfraqueça um teste.
@@ -706,7 +721,7 @@ exportado é distribuído pelo projeto.
    só acontece chamada explicitamente. Acrescente `projeto exportar PROJ` e `hexa PROJ ALVO` no CLI. Aceite: BIN nova + BPS + CUE + relatório `.md`/`.json`; relatório
    JSON reproduz a saída (mesmo hash) a partir do original + camadas; reler a BIN nova e comparar; aplicar o BPS no
    original e comparar; original intocado; sobrescrita exige confirmação.
-5. **Casca do Inverse Engine** (seção 12), PySide6: MainMenuState + EditorWorkspaceState com os painéis, usando
+5. ~~Casca do Inverse Engine~~ **pronto** (seção 12), PySide6: MainMenuState + EditorWorkspaceState com os painéis, usando
    só o núcleo (`Project`, `ChangeSet`, `PatchStack.conflicts`, `export`, `hexview`, `tim`, `RomImage`,
    `match_profiles`). Toda operação longa (abrir imagem, procurar TIMs, exportar) roda em `QThread` com
    progresso e cancelamento. Portões: P1 = tela de revisão antes de operações entrarem no ChangeSet em lote;

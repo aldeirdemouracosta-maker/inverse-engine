@@ -1,0 +1,192 @@
+"""Interface: temas (WCAG AA), tipos de arquivo, terminal equivalente e o fluxo no PySide6 (offscreen)."""
+import os
+import struct
+import tempfile
+import unittest
+from pathlib import Path
+
+from inverse_engine.core import filetypes
+from inverse_engine.formats import png, ppf
+from inverse_engine.ui import terminal, theme
+from tests.fixture_cd import make_slus
+from tests.test_patch_stack import cd, files, TIM, slus_with, ATTACK_182
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+try:
+    from PySide6.QtCore import QMetaMethod, Qt
+    from PySide6.QtWidgets import (QAbstractButton, QAbstractItemView, QApplication, QComboBox, QLineEdit,
+                                   QPlainTextEdit, QPushButton, QSpinBox, QWidget)
+    _APP = QApplication.instance() or QApplication([])
+    HAS_QT = True
+except Exception:  # PySide6 ausente ou sem bibliotecas do sistema: testes de interface pulados
+    HAS_QT = False
+
+
+class ThemeTest(unittest.TestCase):
+    def test_todos_os_temas_passam_em_wcag_aa(self):
+        self.assertEqual(set(theme.available()), {"simples", "fantasia"})
+        for name in theme.available():
+            self.assertEqual(theme.check(theme.load(name)), [], name)
+
+    def test_contraste_conhecido(self):
+        self.assertAlmostEqual(theme.contrast("#000000", "#FFFFFF"), 21.0, places=1)
+        self.assertAlmostEqual(theme.contrast("#777777", "#FFFFFF"), 4.48, places=2)
+        bad = {"cores": dict(theme.load("simples")["cores"], texto_suave="#333333")}
+        self.assertTrue(theme.check(bad))
+
+    def test_arte_e_arquivo_configuravel_nao_embutido(self):
+        t = theme.load("fantasia")
+        self.assertEqual(t["fundo_arte"], "fantasia_fundo.png")
+        self.assertFalse(any(p.suffix in (".png", ".jpg") for p in theme.THEMES_DIR.iterdir()))
+        self.assertIsNone(theme.art_path(t))  # sem arte no repositório: o tema funciona sem ela
+        self.assertIn("font-size: 14pt", theme.stylesheet(t, 14))
+
+
+class FileTypesTest(unittest.TestCase):
+    def test_tipo_pelo_conteudo(self):
+        self.assertEqual(filetypes.detect(make_slus()), "PS-EXE")
+        self.assertEqual(filetypes.detect(TIM), "TIM")
+        self.assertEqual(filetypes.detect(struct.pack("<I", 0x41) + b"\x00" * 8), "TMD")
+        self.assertEqual(filetypes.detect(b"pBAV" + b"\x00" * 20), "VAB")
+        self.assertEqual(filetypes.detect(b"BOOT = cdrom:\\SLUS_009.40;1\r\n"), "SYSTEM.CNF")
+        self.assertEqual(filetypes.detect(b"\x00" * 50 + TIM), "contém TIM")
+        self.assertEqual(filetypes.detect(bytes(range(256))), "desconhecido")
+        self.assertEqual(filetypes.detect(b"", form2=True), "STR/XA (Form 2)")
+        self.assertEqual(filetypes.detect(b"", is_dir=True), "pasta")
+
+
+class TerminalTest(unittest.TestCase):
+    def test_comandos_com_aspas_seguras(self):
+        self.assertEqual(terminal.abrir("Vandal Hearts II (USA).cue"),
+                         "python3 -m inverse_engine.cli abrir 'Vandal Hearts II (USA).cue'")
+        self.assertEqual(terminal.campo("p.vh2proj.json", "weapons", 182, "attack", 45),
+                         "python3 -m inverse_engine.cli projeto campo p.vh2proj.json weapons 182 attack 45")
+        self.assertIn("sha256sum", terminal.hash_arquivo("x.bin"))
+
+
+@unittest.skipUnless(HAS_QT, "PySide6 indisponível")
+class UiTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        os.environ["INVERSE_ENGINE_CONFIG"] = str(Path(self.tmp.name) / "config")
+        from inverse_engine.ui.app import App
+        self.app = App()
+        root = Path(self.tmp.name)
+        self.bin = root / "Vandal Hearts II (USA).bin"
+        self.bin.write_bytes(cd())
+
+    def tearDown(self):
+        self.app.close()
+        self.app.deleteLater()
+        self.tmp.cleanup()
+        os.environ.pop("INVERSE_ENGINE_CONFIG", None)
+
+    @staticmethod
+    def _internal(w):
+        """Peças internas do Qt (lista do QComboBox, barras de rolagem etc.), não controles do app."""
+        p = w.parent()
+        while p is not None:
+            if "Private" in type(p).__name__ or isinstance(p, (QComboBox, QAbstractItemView)):
+                return True
+            p = p.parent()
+        return False
+
+    def interactive(self, root):
+        kinds = (QAbstractButton, QAbstractItemView, QComboBox, QLineEdit, QPlainTextEdit, QSpinBox)
+        return [w for w in root.findChildren(QWidget) if isinstance(w, kinds) and not self._internal(w)
+                and not w.objectName().startswith("qt_") and w.parent() is not None
+                and type(w.parent()).__name__ not in ("QTabBar", "QDockWidget", "QScrollBar", "QHeaderView",
+                                                      "QTableCornerButton", "QComboBox", "QCalendarWidget")]
+
+    def test_menu_botoes_ligados_com_nome_e_atalho(self):
+        buttons = self.app.menu.findChildren(QPushButton)
+        self.assertGreaterEqual(len(buttons), 8)
+        for b in buttons:
+            signal = QMetaMethod.fromSignal(b.clicked)
+            self.assertTrue(b.accessibleName(), b.text())
+            self.assertIn("&", b.text(), "atalho de teclado visível")
+            if b.isEnabled():
+                self.assertTrue(b.isSignalConnected(signal), f"botão sem ação: {b.text()}")
+            else:
+                self.assertIn("marco", b.toolTip())  # desativado explica quando chega
+
+    def test_fluxo_completo_no_workspace(self):
+        p = self.app.start_project(self.bin, Path(self.tmp.name) / "proj", "Rebalance")
+        ws = self.app.workspace
+        self.assertIs(self.app.stack.currentWidget(), ws)
+        self.assertEqual(p.profile_id, "SLUS-00940-USA")
+        # acessibilidade em todos os controles do workspace
+        for w in self.interactive(ws):
+            self.assertTrue(w.accessibleName(), f"{type(w).__name__} sem nome acessível")
+        # arquivos com tipo pelo conteúdo
+        items = ws.files.findItems("SLUS_009.40", Qt.MatchRecursive)
+        self.assertEqual(items[0].text(1), "PS-EXE")
+        self.assertEqual(ws.files.findItems("SPR.BIN", Qt.MatchRecursive)[0].text(1), "contém TIM")
+        # tabela de armas
+        self.assertEqual(ws.grid.rowCount(), 215)
+        headers = [ws.grid.horizontalHeaderItem(c).text() for c in range(ws.grid.columnCount())]
+        col = headers.index("attack\n(provável)")
+        price_col = next(i for i, h in enumerate(headers) if h.startswith("price"))
+        self.assertFalse(ws.grid.item(1, price_col).flags() & Qt.ItemIsEditable)  # hipótese fora do Modo Pesquisa
+        ws.grid.item(182, col).setText("45")
+        self.assertEqual(len(p.changesets["Alterações"].ops), 1)
+        self.assertIn("projeto campo", ws.term_view.toPlainText())
+        self.assertEqual(ws.history.count(), 1)
+        ws.grid.item(182, col).setText("99999")  # não cabe em u16
+        self.assertEqual(ws.grid.item(182, col).text(), "45")
+        self.assertIn("Recusado", ws.log_view.toPlainText())
+        ws.undo()
+        self.assertEqual(ws.grid.item(182, col).text(), "30")
+        ws.redo()
+        self.assertEqual(ws.grid.item(182, col).text(), "45")
+        # inspetor mostra o registro
+        ws._record_selected(182)
+        self.assertIn("attack", ws.inspector.toPlainText())
+        # gráficos
+        ws.scan_tims(sync=True)
+        self.assertEqual(ws.tim_list.count(), 2)
+        ws.tim_list.setCurrentRow(0)
+        self.assertFalse(ws.preview.pixmap().isNull())
+        out_png = ws.export_png(str(Path(self.tmp.name) / "t.png"))
+        img = png.read(out_png.read_bytes())
+        img.palette[1] = (255, 0, 255, 255)
+        new_png = Path(self.tmp.name) / "t2.png"
+        new_png.write_bytes(png.write_indexed(img.width, img.height, img.rows, img.palette))
+        ws.import_png("cores", str(new_png))
+        self.assertEqual(len(p.changesets["Alterações"].ops), 2)
+        # camada PPF e conflito (P4)
+        bad = Path(self.tmp.name) / "conflito.ppf"
+        bad.write_bytes(ppf.build_ppf3(cd(), cd(slus_with([(ATTACK_182, struct.pack("<H", 99))]))))
+        ws.add_patch(str(bad))
+        self.assertEqual(ws.layers.count(), 2)
+        self.assertTrue(any("CONFLITO" in ws.conflicts.item(i).text() for i in range(ws.conflicts.count())))
+        # exportação (P2 + P4 confirmados)
+        ws.review_and_export(auto_confirm=True)
+        res = ws.last_export
+        self.assertTrue(res.files["imagem"].exists())
+        self.assertIn("reproduzir", ws.term_view.toPlainText())
+        # desativar camada pelo painel
+        ws.layers.item(0).setCheckState(Qt.Unchecked)
+        self.assertFalse(p.patches["conflito.ppf"].active)
+        # voltar ao menu salva layout e aparece nos recentes
+        ws.go_back()
+        self.assertIs(self.app.stack.currentWidget(), self.app.menu)
+        self.assertEqual(self.app.menu.recent_list.count(), 1)
+        self.assertIn("layout", p.ui)
+        # reabrir o projeto pelo recente
+        self.app.open_project(p.path)
+        self.assertEqual(ws.grid.item(182, col).text(), "45")
+
+    def test_sem_perfil_so_formatos_genericos(self):
+        other = Path(self.tmp.name) / "outro.bin"
+        from tests.fixture_cd import CdBuilder
+        other.write_bytes(CdBuilder().build({"DATA/A.TIM": TIM}))
+        p = self.app.start_project(other, Path(self.tmp.name) / "p2", "Outro")
+        self.assertIsNone(p.profile_id)
+        ws = self.app.workspace
+        self.assertFalse(ws.tabs.isTabEnabled(0))
+        self.assertEqual(ws.files.findItems("A.TIM", Qt.MatchRecursive)[0].text(1), "TIM")
+
+
+if __name__ == "__main__":
+    unittest.main()

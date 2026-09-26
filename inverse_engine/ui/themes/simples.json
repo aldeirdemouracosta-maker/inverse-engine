@@ -1,0 +1,10 @@
+{
+  "nome": "simples",
+  "descricao": "Padrão, alto contraste",
+  "cores": {
+    "fundo": "#101418", "painel": "#1A2027", "texto": "#F2F5F8", "texto_suave": "#B8C2CC",
+    "botao": "#2B3440", "botao_texto": "#F2F5F8", "destaque": "#FFD166", "destaque_texto": "#101418",
+    "foco": "#FFD166", "erro": "#FF8A80", "ok": "#7EE787", "aviso": "#FFD166", "borda": "#5A6776"
+  },
+  "fundo_arte": null
+}

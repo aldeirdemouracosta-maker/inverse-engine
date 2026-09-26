@@ -27,6 +27,16 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
 4. Descoberta comprovada e hipótese nunca se misturam.
 5. Este repositório **não contém** o jogo, BIOS, patches de terceiros nem texto de guias.
 
+## Interface
+
+```bash
+python3 -m pip install --user -r requirements.txt   # PySide6 (só a interface precisa)
+./iniciar.sh                                         # Linux  (Windows: iniciar.bat)
+```
+
+Atalhos no workspace: Ctrl+Z/Ctrl+Y desfazer/refazer, Ctrl+S salvar, Ctrl+E revisar e exportar,
+F5 atualizar, Esc voltar ao menu, Ctrl+Shift+R restaurar layout. Letras sublinhadas = Alt+letra.
+
 ## Modo terminal
 
 ```bash
@@ -52,8 +62,9 @@ python3 -m unittest discover -s tests -t .                           # testes (s
 | 2. EDC/ECC + PPF + BPS + TIM/PNG + PatchStack + conflitos | feito: EDC/ECC conferido contra o ECMA-130, PPF 1/2/3, BPS, TIM/PNG sem Pillow, camadas ppf/bps_import/changeset/graphics/raw, conflitos só em dados de usuário, EDC/ECC recalculado no fim |
 | 3. ChangeSet com undo/redo + arquivo de projeto | feito: operações com antes/depois/origem/finding, grupos desfeitos de uma vez, `.vh2proj.json` com caminhos relativos, hashes conferidos ao reabrir (P4), salvar/reabrir idêntico |
 | 4. Validation + Export + relatório + hexa | feito: BIN + BPS + CUE + relatório .md/.json, conferências (reler BIN, BPS na original, EDC/ECC, original intocado), sobrescrita só com confirmação, relatório reproduz a saída, hexa de escritas/registros/TIM |
-| 5. Casca PySide6 (menu inicial + workspace) | próximo |
-| 6–14 | pendentes |
+| 5. Casca PySide6 (menu inicial + workspace) | feito: menu inicial com recentes e estatísticas, workspace com painéis (arquivos por conteúdo, inspetor hexa, camadas e conflitos, histórico, console + terminal equivalente), abas Tabelas/Gráficos/Exportar/Sistema, portões P2 e P4, temas simples e fantasia (WCAG AA), teclado e nomes acessíveis |
+| 6. Modo Pesquisa | próximo |
+| 7–14 | pendentes |
 
 `legado/VH2-PS1-Studio-v3.0/` guarda a versão 3.0-alpha (Tkinter) sem alterações, como
 referência. O código da v1.1 do VH2 Studio foi perdido; EDC/ECC, PPF, BPS e TIM/PNG foram reescritos
