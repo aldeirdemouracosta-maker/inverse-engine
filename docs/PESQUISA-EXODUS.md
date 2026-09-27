@@ -14,11 +14,17 @@ SLUS `+0xB5C`, stride `0x16`, campo `+0x10`) vieram do trabalho com Rebelrod/Sil
 | Tabela de habilidades em SLUS `0x15D4C`, 18 bytes, 203 registros | PROVAVEL (hash do LVCP) | S-0001 |
 | A mesma tabela na RAM em `0x8008154C` (= `0x8006C000 + 0x15D4C − 0x800`) | PROVAVEL (observação anterior + conta pelo cabeçalho) | S-0004 |
 | 204 ponteiros de nome válidos em `0x15A1C` (textos `\|Nome\|…`); alinhamento com os 203 registros em aberto | HIPOTESE | S-0002 |
-| Exodus = registro `0x90` (144): SLUS `0x1676C`, RAM `0x80081F6C` | HIPOTESE (pesquisa anterior) | S-0005 |
+| Exodus ligada ao valor `0x90` (pesquisa anterior); **pela matriz de nomes, o registro 0x90 é "Demonheart" (shift 0) ou "Switcher" (shift 1)** | HIPOTESE, com evidência contrária | S-0005 |
+| O texto "Exodus" está no ponteiro de nome **`0x88`** (registro 0x88 com shift 0, 0x87 com shift 1): SLUS `0x166DC`, RAM `0x80081EDC` (shift 0) | PROVAVEL (visto na BIN real) | S-0006 |
 | TIMs candidatos em `VH2DATA.BIN` (numeração da ferramenta anterior): 103 aura/partículas, 106 impacto, 113 entidade grande, 117 criatura/animação, 131 portal/fumaça | HIPOTESE | G-0001 |
 | Qual campo do registro aponta para gráfico/animação/entidade | DESCONHECIDO | S-0016… |
 
-Cuidado: a numeração 103/113/117 é da ferramenta anterior (224 TIMs). Use `tims` do Inverse Engine
+Duas explicações para o 0x90, ainda não decididas: é um ID de outro espaço (scripts/batalha; a diferença para
+0x88 é exatamente 8) ou a ordem dos nomes não é a dos registros.
+
+Cuidado: a numeração 103/113/117 é da ferramenta anterior (224 TIMs). O Inverse Engine acha **114** TIMs em
+`VH2DATA.BIN`, então o #113 dele **não** é o TIM 113 da ferramenta anterior. Os #99–#113 são 256×64 4bpp com
+VRAM/CLUT (0,0) no cabeçalho: o jogo decide a posição na hora (use o VRAM Viewer, não o cabeçalho). Use `tims` do Inverse Engine
 (numera por arquivo: `#k`) e case pelo **offset**, não só pelo número.
 
 ## O que falta provar (a cadeia)
