@@ -62,7 +62,11 @@ class ProfileDataTest(unittest.TestCase):
     def test_habilidades_sem_nomes_de_campo(self):
         self.assertEqual(self.profile["tables"]["skills"]["fields"], {})
         for i in range(18):
-            self.assertEqual(self.findings["S-%04d" % (0x10 + i)]["status"], "DESCONHECIDO")
+            f = self.findings["S-%04d" % (0x10 + i)]
+            # Sem nome de campo no perfil; sair de DESCONHECIDO só com evidência e no máximo até HIPOTESE.
+            self.assertIn(f["status"], ("DESCONHECIDO", "HIPOTESE"))
+            if f["status"] == "HIPOTESE":
+                self.assertTrue(f["evidence"])
 
 
 if __name__ == "__main__":
