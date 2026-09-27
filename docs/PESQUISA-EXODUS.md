@@ -52,7 +52,7 @@ Um bloco xadrez 8×8 no TIM candidato; paleta, BPP, tamanho e posição na VRAM 
 python3 -m inverse_engine.cli tims "Vandal Hearts II (USA).cue" | grep VH2DATA      # achar o offset
 python3 -m inverse_engine.cli teste-marca ~/vh2/"Rebalance 2026.vh2proj.json" VH2DATA.BIN 0xOFFSET
 ```
-Abra a BIN de `testes/` no emulador, solte a Exodus: se o xadrez aparecer na criatura/efeito, o TIM é
+Inicie o jogo pela BIN de `testes/` e carregue um save do **memory card** (savestate traz a RAM antiga e anula o teste), solte a Exodus: se o xadrez aparecer na criatura/efeito, o TIM é
 dela (evidência `in_game_test` no G-0001; CONFIRMADO só com o portão P3). Melhor que recolorir a
 paleta, que afeta todo sprite que a compartilha.
 

@@ -136,6 +136,7 @@ class TestBinTest(unittest.TestCase):
         self.assertTrue(t.cue.exists())
         self.assertIn("weapons[182].price", t.description)
         self.assertIn("in_game_test", t.instructions)
+        self.assertIn("MEMORY CARD", t.instructions)  # savestate traria a RAM antiga
         new = RomImage.open(t.image).read_file("SLUS_009.40")
         old = files()["SLUS_009.40"]
         diff = [i for i in range(len(old)) if old[i] != new[i]]

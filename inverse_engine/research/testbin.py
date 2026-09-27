@@ -52,8 +52,9 @@ def _write(project: Project, st: PatchStack, name: str, description: str, overwr
     if st.image.kind == "bin":
         cue = with_ext(folder / name, ".cue")
         cue.write_text(f'FILE "{img.name}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n', encoding="utf-8")
-    how = (f"1. Abra {cue or img} no emulador (use um savestate da tela certa).\n"
-           f"2. Compare com o jogo original: {description}.\n"
+    how = (f"1. Inicie o jogo por {cue or img} e carregue um save do MEMORY CARD (não use savestate: ele traz a RAM "
+           f"antiga, com os dados originais, e a mudança some).\n"
+           f"2. Compare com o jogo original, no mesmo save: {description}.\n"
            f"3. Se a mudança apareceu, registre a evidência in_game_test no finding (portão P3 para CONFIRMADO).")
     return TestBin(img, cue, description, how)
 
