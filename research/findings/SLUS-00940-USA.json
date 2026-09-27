@@ -194,6 +194,11 @@
           "kind": "lvcp_evidence",
           "detail": "LVCP achou sequências 0x15A1C (143) e 0x15C5C (60)",
           "date": null
+        },
+        {
+          "kind": "static_values",
+          "detail": "BIN real (2ee08a8f…): os ponteiros em 0x15A1C apontam para textos 'prefixo|Nome|resto' com prefixo vazio: [0] '|Blaze Slash|C2$…', [1] '|First Aid|', [2] '|Thunderbolt|C2$…', [3] '|Growmark|C4$…'. Alinhamento 204 × 203 ainda em aberto.",
+          "date": "2026-09-27"
         }
       ],
       "profiles": [
@@ -507,7 +512,13 @@
       "file": "SLUS_009.40",
       "interpretation": "nomes via ponteiros em 0x16D2C (158 ponteiros)",
       "status": "HIPOTESE",
-      "evidence": [],
+      "evidence": [
+        {
+          "kind": "static_values",
+          "detail": "BIN real (2ee08a8f…): os ponteiros em 0x16D2C apontam para textos no formato das armas: [0] 'I?057?019|R-angel|C1$…', [1] 'I?408?022|Magerobe|C1$…', [2] 'I?403?031|L-tour|…', [3] 'I?256?045|A-royal|…'",
+          "date": "2026-09-27"
+        }
+      ],
       "profiles": [
         "SLUS-00940-USA"
       ],

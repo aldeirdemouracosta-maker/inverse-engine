@@ -17,29 +17,32 @@ from tests.fixture_cd import CdBuilder, make_slus, LOAD_ADDRESS
 from tests.test_patch_stack import PROFILE, FINDINGS
 
 ROOT = Path(__file__).resolve().parent.parent
-TEXT_AT = 0x14000
+TEXT_AT = 0x3000  # depois dos textos das armas (terminam antes de 0x3000)
 
 
 def ram(off):
     return LOAD_ADDRESS + off - 0x800
 
 
-def make_full_slus():
-    """SLUS com armas, habilidades (204 ponteiros × 203 registros, entrada 143 inválida) e armaduras."""
+def make_full_slus(skill_fmt="|{}|C2", armor_fmt="I?000?000|{}|C1"):
+    """SLUS com armas, habilidades (204 ponteiros × 203 registros, entrada 143 inválida) e armaduras.
+
+    Os textos seguem os formatos vistos na BIN real: habilidades "|Nome|…", armaduras "I?NNN?NNN|Nome|…".
+    """
     data = bytearray(make_slus(names={182: "Rebelrod", 1: "Espada1"}, size=0x18000))
     at = TEXT_AT
     for i in range(204):  # habilidades: 0x15A1C … 0x15D4C
         if i == 143:
             struct.pack_into("<I", data, 0x15A1C + 4 * i, 0)  # aponta para fora da faixa de textos
             continue
-        txt = f"Tecnica{i:03d}".encode() + b"\x00"
+        txt = skill_fmt.format(f"Tecnica{i:03d}").encode() + b"\x00"
         data[at:at + len(txt)] = txt
         struct.pack_into("<I", data, 0x15A1C + 4 * i, ram(at))
         at += len(txt)
     for i in range(203):  # coluna plantada: +0x05 múltiplos de 5 crescentes
         data[0x15D4C + 18 * i + 5] = (5 * (i + 1)) & 0xFF if i < 51 else 255
     for i in range(158):  # armaduras: 0x16D2C … 0x16FA4
-        txt = f"Armadura{i:03d}".encode() + b"\x00"
+        txt = armor_fmt.format(f"Armadura{i:03d}").encode() + b"\x00"
         data[at:at + len(txt)] = txt
         struct.pack_into("<I", data, 0x16D2C + 4 * i, ram(at))
         at += len(txt)
@@ -101,8 +104,11 @@ class TextEditTest(unittest.TestCase):
         self.image = RomImage.from_bytes(CdBuilder().build({"SLUS_009.40": self.data}))
 
     def test_menor_preenche_com_nul_e_maior_recusado(self):
-        # Nome solto (habilidades na fixture): o menor é completado com NUL.
-        off, old, new = names.encode_name(SKILLS, self.data, 0, "Golpe")
+        # Nome solto (tabela sem separador): o menor é completado com NUL.
+        d = json.loads((ROOT / "profiles" / "SLUS-00940-USA.json").read_text())
+        d["tables"]["skills"]["names"].pop("separator")
+        plain = RomProfile(d).table("skills")
+        off, old, new = names.encode_name(plain, make_full_slus(skill_fmt="{}"), 0, "Golpe")
         self.assertEqual((old, new), (b"Tecnica000", b"Golpe\x00\x00\x00\x00\x00"))
         with self.assertRaisesRegex(names.NamesError, "realocar"):
             names.encode_name(WEAPONS, self.data, 182, "RebelrodXL")

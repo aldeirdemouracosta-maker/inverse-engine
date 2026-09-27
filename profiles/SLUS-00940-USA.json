@@ -159,7 +159,9 @@
       "names": {
         "pointer_table": "0x15A1C",
         "status": "HIPOTESE",
-        "finding": "S-0002"
+        "finding": "S-0002",
+        "separator": "|",
+        "field": 1
       },
       "integrity_sha256": "cfd77b35c2bc07e0d8e48bd791f5c7bf2affa58870c583b1af06242aff90186b",
       "fields": {}
@@ -173,7 +175,9 @@
       "names": {
         "pointer_table": "0x16D2C",
         "status": "HIPOTESE",
-        "finding": "A-0002"
+        "finding": "A-0002",
+        "separator": "|",
+        "field": 1
       },
       "integrity_sha256": "f51ae2dc8ebfeb70f31f01b0ddd17bad22ba5fe2359c0a405d9093d5d3e61fc2",
       "fields": {}
