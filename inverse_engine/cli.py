@@ -25,6 +25,7 @@
     python -m inverse_engine.cli memcard CARTAO.mcr [--exportar N saida.mcs] [--importar save.mcs --saida novo.mcr]
     python -m inverse_engine.cli vab IMAGEM [--exportar ARQUIVO_NO_CD OFFSET PASTA]   # bancos de som → WAV
     python -m inverse_engine.cli tmd IMAGEM [--exportar ARQUIVO_NO_CD OFFSET saida.obj]   # modelos 3D → OBJ
+    python -m inverse_engine.cli teste-marca PROJ VH2DATA.BIN 0xOFFSET_DO_TIM [--x N --y N --tamanho 8]
 """
 from __future__ import annotations
 
@@ -102,8 +103,11 @@ def cmd_tims(args) -> int:
     from inverse_engine.formats import tim
     image = RomImage.open(args.imagem)
     found = tim.scan_image(image)
+    per_file: dict[str, int] = {}
     for path, info in found:
-        print(f"{path:<32} 0x{info.offset:08X} {info.size:>7} bytes  {info.describe()}")
+        k = per_file.get(path, 0)
+        per_file[path] = k + 1
+        print(f"#{k:<4} {path:<24} 0x{info.offset:08X} {info.size:>7} bytes  {info.describe()}")
     print(f"{len(found)} TIM(s)")
     return 0
 
@@ -361,6 +365,15 @@ def cmd_tmd(args) -> int:
     return 0
 
 
+def cmd_teste_marca(args) -> int:
+    from inverse_engine.core.project import Project
+    from inverse_engine.research import testbin
+    p = Project.load(args.projeto)
+    res = testbin.mark_test(p, args.arquivo, args.offset, args.x, args.y, args.tamanho, overwrite=args.sobrescrever)
+    print(f"{res.image}\n{res.instructions}")
+    return 0
+
+
 def _findings_for(profile_id: str) -> FindingsDB:
     p = FINDINGS / f"{profile_id}.json"
     return FindingsDB.load(p) if p.exists() else FindingsDB({"findings": []})
@@ -460,6 +473,15 @@ def main(argv=None) -> int:
     tm.add_argument("imagem")
     tm.add_argument("--exportar", nargs=3, metavar=("ARQUIVO", "OFFSET", "SAIDA.obj"))
     tm.set_defaults(func=cmd_tmd)
+    mk = sub.add_parser("teste-marca", help="BIN de teste com marca visual xadrez num TIM (identifica o recurso)")
+    mk.add_argument("projeto")
+    mk.add_argument("arquivo")
+    mk.add_argument("offset", type=lambda s: int(s, 0))
+    mk.add_argument("--x", type=int)
+    mk.add_argument("--y", type=int)
+    mk.add_argument("--tamanho", type=int, default=8)
+    mk.add_argument("--sobrescrever", action="store_true")
+    mk.set_defaults(func=cmd_teste_marca)
     args = ap.parse_args(argv)
     try:
         return args.func(args)

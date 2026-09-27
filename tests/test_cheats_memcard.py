@@ -17,6 +17,13 @@ ROOT = Path(__file__).resolve().parent.parent
 SLUS = make_slus(names={182: "Rebelrod"})
 
 
+def profile_without_ram():
+    """Perfil real sem `record_ram` (para testar a recusa sem endereço com evidência)."""
+    d = json.loads((ROOT / "profiles" / "SLUS-00940-USA.json").read_text())
+    d["tables"]["weapons"].pop("record_ram", None)
+    return RomProfile(d)
+
+
 def profile_with_ram(address="0x800A0000", finding="F-0003"):
     d = json.loads((ROOT / "profiles" / "SLUS-00940-USA.json").read_text())
     d["tables"]["weapons"]["record_ram"] = {"address": address, "finding": finding}
@@ -32,13 +39,22 @@ def db_with_ram_evidence(status="CONFIRMADO"):
 
 
 class CheatTest(unittest.TestCase):
-    def test_sem_endereco_com_evidencia_recusa(self):
+    def test_perfil_real_tem_ram_das_armas_com_evidencia(self):
         t = RomProfile.load(ROOT / "profiles" / "SLUS-00940-USA.json").table("weapons")
+        self.assertEqual(t.record_ram, 0x8006C35C)       # = 0x8006C000 + 0xB5C − 0x800
+        c = cheats.field_cheat(t, SLUS, 182, "attack", 45, FINDINGS)
+        self.assertFalse(c.experimental)                  # F-0003 e F-0011 PROVAVEL
+        self.assertEqual(c.address, 0x8006C35C + 182 * 22 + 0xA)
+        s = RomProfile.load(ROOT / "profiles" / "SLUS-00940-USA.json").table("skills")
+        self.assertEqual(s.record_ram, 0x8008154C)       # = 0x8006C000 + 0x15D4C − 0x800
+
+    def test_sem_endereco_com_evidencia_recusa(self):
+        t = profile_without_ram().table("weapons")
         with self.assertRaisesRegex(cheats.CheatError, "Modo Pesquisa"):
             cheats.field_cheat(t, SLUS, 182, "attack", 45, FINDINGS)
 
     def test_modo_pesquisa_usa_endereco_do_executavel_como_experimental(self):
-        t = RomProfile.load(ROOT / "profiles" / "SLUS-00940-USA.json").table("weapons")
+        t = profile_without_ram().table("weapons")
         c = cheats.field_cheat(t, SLUS, 182, "attack", 45, FINDINGS, research_mode=True)
         addr = PsExe.parse(SLUS).file_to_ram(0xB5C) + 182 * 22 + 0xA
         self.assertEqual(c.address, addr)

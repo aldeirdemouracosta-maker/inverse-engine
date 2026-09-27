@@ -34,7 +34,11 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
   importe no núcleo. Pode servir de referência de ideias: busca por valor/hex com curinga `??`/texto
   Shift-JIS, ChangeSet com undo/redo, prévia de aparência (direções, animação, GIF), prévia de falas com
   retrato. O que for aproveitado é **reescrito** no núcleo novo (sem Pillow) e na interface PySide6.
-- Os **marcos 1 a 10 estão prontos** (ver 0.2): 182 testes passando. Continue do **marco 11**.
+- Os **marcos 1 a 10 estão prontos** (ver 0.2): 185 testes passando. Continue do **marco 11**.
+- **Pesquisa da Exodus:** leia `docs/PESQUISA-EXODUS.md` antes dos marcos 11 e 13. O alvo principal é o summon
+  handler da Exodus (registro 0x90 das habilidades, RAM 0x80081F6C). **Não misture tabelas**: os endereços da
+  tabela de armas (0x8006C35C, +0xB5C, stride 0x16, +0x10) não servem para localizar a Exodus. Já existem
+  `testbin.mark_test` (marca visual 8×8) e o `record_ram` das armas e das habilidades no perfil (PROVAVEL).
 - **Primeiro teste com a BIN real (feito pelo usuário):** SHA-256 confere com a BIN do LVCP; âncoras PS-X EXE e hash
   da tabela de armas passaram; 33 bancos VAB achados em `SD_BULK.BIN`; arquivos do CD: SYSTEM.CNF, SLUS_009.40,
   VH2DATA.BIN (152 MB), SD_BULK.BIN, AUDIOXA.STR (XA), DUMMY.BIN. Os nomes das armas estão em textos

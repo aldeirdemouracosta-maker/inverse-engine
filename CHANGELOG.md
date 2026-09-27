@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## Pesquisa anterior do usuário registrada (Exodus e endereços de RAM)
+- Perfil: `record_ram` das armas (0x8006C35C, F-0003) e das habilidades (0x8008154C, S-0004), PROVAVEL:
+  observação anterior na RAM + conta pelo cabeçalho do executável (t_addr 0x8006C000); cheats das armas
+  deixam de ser experimentais nos campos com evidência
+- Findings: S-0005 (Exodus = registro 0x90, HIPOTESE), G-0001 (TIMs candidatos 103/106/113/117/131 de
+  VH2DATA.BIN, HIPOTESE); evidência nova em S-0001 e F-0014 (tabela de armas ≠ Exodus)
+- `research/testbin.mark_pixels` / `mark_test`: marca visual xadrez 8×8 num TIM (mesmo tamanho, BPP,
+  paleta e VRAM) em BIN de teste; botão na aba Pesquisa; CLI `teste-marca`
+- CLI `tims` numera os TIMs por arquivo (#k) para casar com catálogos anteriores pelo offset
+- `docs/PESQUISA-EXODUS.md`: o que está estabelecido, a cadeia que falta provar e o método
+
 ## Marco 10 — modelos TMD (só leitura)
 - `formats/tmd.py`: cabeçalho 0x41 (ponteiros relativos ou FIXP), objetos, vértices, normais, primitivas;
   8 layouts de polígono com luz decodificados (triângulo/quadrilátero, plano/Gouraud, com/sem textura);

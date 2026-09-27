@@ -109,3 +109,50 @@ def register_tims(db: FindingsDB, found: list[tuple[str, tim.TimInfo]]) -> list[
                                   [{"kind": "tim_scan", "detail": "sem TIM solto: provável formato comprimido "
                                                                   "(fase Ghidra, descompressor)"}]))
     return new
+
+
+def mark_pixels(data: bytes, info: tim.TimInfo, x: int | None = None, y: int | None = None,
+                size: int = 8) -> tuple[bytes, tuple[int, int, int, int]]:
+    """TIM com um bloco em xadrez (mesmo tamanho, BPP, paleta e VRAM). Devolve (TIM novo, (x, y, w, h)).
+
+    Em 4/8bpp o xadrez usa a cor mais clara e a mais escura da paleta 0 (nunca a transparente); em 16bpp,
+    magenta e preto opaco. Só os pixels do bloco mudam.
+    """
+    rows = tim.indices(data, info)
+    w, h = min(size, info.width), min(size, info.height)
+    x = (info.width - w) // 2 if x is None else max(0, min(x, info.width - w))
+    y = (info.height - h) // 2 if y is None else max(0, min(y, info.height - h))
+    if info.bpp in (4, 8):
+        pal = tim.palette(data, info, 0)
+        opaque = [i for i, c in enumerate(pal) if c != 0]
+        if len(opaque) < 2:
+            raise TestBinError("a paleta não tem duas cores opacas para a marca")
+        lum = lambda i: sum(tim.to_rgba(pal[i])[:3])
+        a, b = max(opaque, key=lum), min(opaque, key=lum)
+    elif info.bpp == 16:
+        a, b = MAGENTA, 0x8000
+    else:
+        raise TestBinError("TIM 24bpp: marca não suportada")
+    for yy in range(y, y + h):
+        for xx in range(x, x + w):
+            rows[yy][xx] = a if (xx + yy) % 2 == 0 else b
+    old_pix = data[info.pixel_offset:info.pixel_offset + info.pixel_bytes]
+    new_pix = tim._pack_pixels(info, rows, old_pix)
+    t = data[info.offset:info.offset + info.size]
+    rel = info.pixel_offset - info.offset
+    return t[:rel] + new_pix + t[rel + len(new_pix):], (x, y, w, h)
+
+
+def mark_test(project: Project, file: str, tim_offset: int, x: int | None = None, y: int | None = None,
+              size: int = 8, overwrite: bool = False) -> TestBin:
+    """BIN de teste com a marca visual num TIM: se a marca aparecer no efeito, o recurso é esse."""
+    image = project.open_image()
+    data = image.read_file(file) if image.disc else image.data
+    info = tim.parse(data, tim_offset)
+    new, (mx, my, mw, mh) = mark_pixels(data, info, x, y, size)
+    st = _base_stack(project)
+    st.add(Layer("teste", "graphics", edits=[GraphicEdit(file, info.offset, data[info.offset:info.offset + info.size],
+                                                         new, "desenho", 0, info.clut_pos)]))
+    return _write(project, st, f"teste marca {Path(file).name} 0x{info.offset:X}",
+                  f"um bloco xadrez {mw}×{mh} em ({mx},{my}) do TIM {file} 0x{info.offset:X} "
+                  f"({info.describe()}) aparece no jogo", overwrite)

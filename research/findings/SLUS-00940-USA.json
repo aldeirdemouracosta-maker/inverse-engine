@@ -135,7 +135,13 @@
       "type": "u16le",
       "interpretation": "índice visual (candidato)",
       "status": "HIPOTESE",
-      "evidence": [],
+      "evidence": [
+        {
+          "kind": "reference_value",
+          "detail": "o campo +0x10 das armas apareceu na pesquisa anterior (trabalho com Rebelrod/Silver Knuckles); é da tabela de armas, não da Exodus; significado ainda não provado",
+          "date": "2026-09-27"
+        }
+      ],
       "profiles": [
         "SLUS-00940-USA"
       ],
@@ -188,6 +194,11 @@
           "kind": "lvcp_evidence",
           "detail": "table_sha256 cfd77b35…186b do LVCP Gate 02",
           "date": null
+        },
+        {
+          "kind": "reference_value",
+          "detail": "pesquisa anterior do usuário achou a tabela na RAM em 0x8008154C com registros de 18 bytes, exatamente 0x15D4C convertido pelo t_addr 0x8006C000",
+          "date": "2026-09-27"
         }
       ],
       "profiles": [
@@ -960,6 +971,119 @@
         "SLUS-00940-USA"
       ],
       "history": []
+    },
+    {
+      "id": "F-0003",
+      "subject": "weapons.record_ram",
+      "file": "SLUS_009.40",
+      "interpretation": "a tabela de armas fica na RAM em 0x8006C35C (registro 0), sem cópia para outro endereço",
+      "status": "PROVAVEL",
+      "evidence": [
+        {
+          "kind": "reference_value",
+          "detail": "pesquisa anterior do usuário (trabalho com Rebelrod/Silver Knuckles): RAM 0x8006C35C, SLUS +0xB5C, stride 0x16, campo +0x10 pertencem à tabela de ARMAS; não usar para localizar a Exodus (mistura de tabelas evitada)",
+          "date": "2026-09-27"
+        },
+        {
+          "kind": "static_values",
+          "detail": "conta pelo cabeçalho do executável da BIN real: t_addr 0x8006C000 + (0xB5C − 0x800) = 0x8006C35C",
+          "date": "2026-09-27"
+        }
+      ],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": [
+        {
+          "date": "2026-09-27",
+          "from": null,
+          "to": "PROVAVEL",
+          "why": "pesquisa anterior do usuário registrada"
+        }
+      ]
+    },
+    {
+      "id": "S-0004",
+      "subject": "skills.record_ram",
+      "file": "SLUS_009.40",
+      "interpretation": "a tabela de habilidades fica na RAM em 0x8008154C (registro 0), 18 bytes por registro",
+      "status": "PROVAVEL",
+      "evidence": [
+        {
+          "kind": "reference_value",
+          "detail": "pesquisa anterior do usuário: provável tabela de técnicas/magias na RAM em 0x8008154C, registros de 18 bytes",
+          "date": "2026-09-27"
+        },
+        {
+          "kind": "static_values",
+          "detail": "conta pelo cabeçalho do executável da BIN real: t_addr 0x8006C000 + (0x15D4C − 0x800) = 0x8008154C; stride 18 igual ao do LVCP",
+          "date": "2026-09-27"
+        }
+      ],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": [
+        {
+          "date": "2026-09-27",
+          "from": null,
+          "to": "PROVAVEL",
+          "why": "pesquisa anterior do usuário registrada"
+        }
+      ]
+    },
+    {
+      "id": "S-0005",
+      "subject": "skills.exodus",
+      "file": "SLUS_009.40",
+      "record_offset": "0x0",
+      "size": 18,
+      "type": "registro",
+      "interpretation": "Exodus é o registro 0x90 (144) da tabela de habilidades (SLUS 0x1676C, RAM 0x80081F6C)",
+      "status": "HIPOTESE",
+      "evidence": [
+        {
+          "kind": "reference_value",
+          "detail": "pesquisa anterior do usuário: Exodus tratada como anchor 0x90; campo que aponta para rotina gráfica/animação ainda não provado",
+          "date": "2026-09-27"
+        }
+      ],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": [
+        {
+          "date": "2026-09-27",
+          "from": null,
+          "to": "HIPOTESE",
+          "why": "pesquisa anterior do usuário registrada"
+        }
+      ]
+    },
+    {
+      "id": "G-0001",
+      "subject": "graphics.exodus_candidates",
+      "file": "VH2DATA.BIN",
+      "interpretation": "TIMs de VH2DATA.BIN candidatos ao efeito da Exodus: 103 aura/partículas, 106 impacto, 113 entidade grande (summon?), 117 criatura/animação, 131 portal/fumaça",
+      "status": "HIPOTESE",
+      "evidence": [
+        {
+          "kind": "reference_value",
+          "detail": "pesquisa anterior do usuário: 224 TIMs catalogados em VH2DATA.BIN; numeração da ferramenta anterior (pode diferir da do Inverse Engine: casar pelo offset); não provado. Teste proposto: marca visual 8×8 no TIM 113/117 e soltar a Exodus",
+          "date": "2026-09-27"
+        }
+      ],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": [
+        {
+          "date": "2026-09-27",
+          "from": null,
+          "to": "HIPOTESE",
+          "why": "pesquisa anterior do usuário registrada"
+        }
+      ]
     }
   ]
 }

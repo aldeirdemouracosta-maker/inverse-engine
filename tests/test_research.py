@@ -153,6 +153,33 @@ class TestBinTest(unittest.TestCase):
         self.assertTrue(all(v == testbin.MAGENTA for v in pal[1:]))
         self.assertEqual(tim.indices(spr, info), tim.indices(files()["DATA/CHR/SPR.BIN"], info))
 
+    def test_marca_visual_so_muda_o_bloco(self):
+        spr = files()["DATA/CHR/SPR.BIN"]
+        info = tim.parse(spr, 64)
+        new, (x, y, w, h) = testbin.mark_pixels(spr, info, size=8)
+        self.assertEqual((w, h), (8, 2))                      # TIM de 8×2: o bloco é recortado
+        self.assertEqual(len(new), info.size)
+        n = tim.parse(new, 0)
+        self.assertEqual(tim.palette(new, n), tim.palette(spr, info))  # paleta intacta
+        self.assertEqual((n.vram_pos, n.clut_pos, n.bpp), (info.vram_pos, info.clut_pos, info.bpp))
+        rows = tim.indices(new, n)
+        self.assertEqual(len({rows[yy][xx] for yy in range(2) for xx in range(8)}), 2)  # xadrez de 2 cores
+        t = testbin.mark_test(self.p, "DATA/CHR/SPR.BIN", 64)
+        out = RomImage.open(t.image).read_file("DATA/CHR/SPR.BIN")
+        self.assertEqual(out[64:64 + info.size], new)
+        self.assertEqual(out[64 + info.size:], spr[64 + info.size:])  # o outro TIM não muda
+        self.assertIn("xadrez", t.description)
+
+    def test_marca_em_16bpp(self):
+        t16 = tim.build(16, 16, 16, [[0x0421] * 16 for _ in range(16)])
+        info = tim.parse(t16, 0)
+        new, (x, y, w, h) = testbin.mark_pixels(t16, info, 2, 3, 8)
+        self.assertEqual((x, y, w, h), (2, 3, 8, 8))
+        rows = tim.indices(new, tim.parse(new, 0))
+        changed = [(xx, yy) for yy in range(16) for xx in range(16) if rows[yy][xx] != 0x0421]
+        self.assertEqual(len(changed), 64)
+        self.assertTrue(all(2 <= xx < 10 and 3 <= yy < 11 for xx, yy in changed))
+
     def test_findings_de_graficos(self):
         db = self.p.findings()
         found = tim.scan_image(self.p.open_image())

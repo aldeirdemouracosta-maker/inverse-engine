@@ -293,11 +293,14 @@ class UiTest(unittest.TestCase):
         ws.c_index.setValue(182)
         ws.c_field.setCurrentText("attack")
         ws.c_value.setValue(45)
-        self.assertIsNone(ws.add_cheat())           # sem record_ram com evidência
-        self.assertIn("Cheat recusado", ws.log_view.toPlainText())
+        c = ws.add_cheat()                          # record_ram das armas com evidência (F-0003)
+        self.assertFalse(c.experimental)
+        self.assertEqual(c.address, 0x8006C35C + 182 * 22 + 0xA)
+        ws.c_field.setCurrentText("price")          # campo em HIPOTESE: o código sai marcado experimental
+        self.assertTrue(ws.add_cheat().experimental)
         ws.research.setChecked(True)
-        c = ws.add_cheat()
-        self.assertTrue(c.experimental)
+        ws.c_table.setCurrentText("weapons")
+        ws.c_field.setCurrentText("attack")
         self.assertIn(c.lines[0], ws.cheat_view.toPlainText())
         self.assertIn("cheat", ws.term_view.toPlainText())
         out = ws.export_cheats("cht", str(root / "vh2.cht"))

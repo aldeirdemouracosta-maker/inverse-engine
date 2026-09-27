@@ -148,7 +148,11 @@
           "finding": "F-0016"
         }
       },
-      "integrity_sha256": "5bf7dbf0933309437cbd79476e77a14057ea2ed4bb0f3e086b9a1c3a52d2b06f"
+      "integrity_sha256": "5bf7dbf0933309437cbd79476e77a14057ea2ed4bb0f3e086b9a1c3a52d2b06f",
+      "record_ram": {
+        "address": "0x8006C35C",
+        "finding": "F-0003"
+      }
     },
     "skills": {
       "file": "SLUS_009.40",
@@ -164,7 +168,11 @@
         "field": 1
       },
       "integrity_sha256": "cfd77b35c2bc07e0d8e48bd791f5c7bf2affa58870c583b1af06242aff90186b",
-      "fields": {}
+      "fields": {},
+      "record_ram": {
+        "address": "0x8008154C",
+        "finding": "S-0004"
+      }
     },
     "armors": {
       "file": "SLUS_009.40",

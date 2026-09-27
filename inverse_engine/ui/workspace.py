@@ -217,6 +217,8 @@ class Workspace(QMainWindow):
         fb.addWidget(_btn("Promover/rebaixar… (P3)", self.promote_dialog))
         fb.addWidget(_btn("Registrar TIMs como findings", self.register_tims))
         fb.addWidget(_btn("Recolorir TIM (magenta) para teste", self.recolor_test, "Usa o TIM selecionado em Gráficos"))
+        fb.addWidget(_btn("Marca visual 8×8 (teste)", self.mark_test,
+                          "Xadrez 8×8 no centro do TIM selecionado em Gráficos; paleta e tamanho não mudam"))
         fv.addLayout(fb)
         row.addWidget(box, 1)
         v.addLayout(row, 2)
@@ -1016,6 +1018,21 @@ class Workspace(QMainWindow):
             self.log(f"Recusado: {e}")
             return None
         self.log(f"BIN de teste (magenta): {res.image}\n{res.instructions}")
+        return res
+
+    def mark_test(self):
+        cur = self._current_tim()
+        if cur is None:
+            self.log("Selecione um TIM na aba Gráficos primeiro")
+            return None
+        path, info, _ = cur
+        try:
+            res = testbin.mark_test(self.project, path, info.offset, overwrite=True)
+        except (testbin.TestBinError, tim.TimError) as e:
+            self.log(f"Recusado: {e}")
+            return None
+        self.log(f"BIN de teste (marca visual): {res.image}\n{res.instructions}",
+                 f"{terminal.CLI} teste-marca {terminal.q(self.project.path)} {terminal.q(path)} 0x{info.offset:X}")
         return res
 
     def register_tims(self) -> None:
