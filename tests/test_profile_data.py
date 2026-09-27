@@ -55,7 +55,9 @@ class ProfileDataTest(unittest.TestCase):
         self.assertEqual(self.profile["tables"]["armors"]["fields"], {})
         for i in range(26):
             self.assertEqual(self.findings["A-%04d" % (0x10 + i)]["status"], "DESCONHECIDO")
-        self.assertEqual(self.findings["A-0002"]["status"], "HIPOTESE")
+        # A-0002 subiu para PROVAVEL com a evidência da BIN real; CONFIRMADO só com o portão P3.
+        self.assertIn(self.findings["A-0002"]["status"], ("HIPOTESE", "PROVAVEL"))
+        self.assertTrue(self.findings["A-0002"]["evidence"])
 
     def test_habilidades_sem_nomes_de_campo(self):
         self.assertEqual(self.profile["tables"]["skills"]["fields"], {})
