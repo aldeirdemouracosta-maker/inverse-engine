@@ -266,8 +266,13 @@ def cmd_nomes(args) -> int:
     from inverse_engine.research import names
     image, profile = _profile_for(args.imagem, args.perfis)
     t = profile.table(args.tabela)
-    rep = names.analyze(t, image.read_file(t.file))
+    data = image.read_file(t.file)
+    rep = names.analyze(t, data)
     print(rep.summary())
+    print("texto bruto dos primeiros ponteiros (para ver o formato):")
+    for e in rep.entries[:4]:
+        raw = data[e.file_offset:e.file_offset + 32].split(bytes(1))[0] if e.file_offset is not None else b""
+        print(f"   [{e.index}] {e.pointer:#010x} → {raw!r}")
     for h in rep.hypotheses:
         print(f"\nshift {h.shift}: {h.description}")
         for i, n in h.samples:

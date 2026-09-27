@@ -274,11 +274,11 @@ class UiTest(unittest.TestCase):
         self.assertEqual(repo_profile_shift("skills"), 0)                 # repositório intocado
         ws.table_combo.setCurrentText("weapons")
         ws.research.setChecked(False)
-        ws.grid.item(182, 1).setText("Rodex")
+        ws.grid.item(182, 1).setText("Rodexzzz")  # mesmo tamanho de "Rebelrod" (nome dentro de "…|Nome|…")
         self.assertEqual(p.changesets["Alterações"].ops[-1].target, "weapons[182].nome")
         ws.grid.item(182, 1).setText("NomeGrandeDemais")
         self.assertIn("realocar", ws.log_view.toPlainText())
-        self.assertEqual(ws.grid.item(182, 1).text(), "Rodex")
+        self.assertEqual(ws.grid.item(182, 1).text(), "Rodexzzz")
 
     def test_cheats_e_memory_card(self):
         from inverse_engine.formats import memcard

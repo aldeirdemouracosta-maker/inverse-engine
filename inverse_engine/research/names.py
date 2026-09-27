@@ -59,13 +59,6 @@ class NamesReport:
         return s
 
 
-def _text(data: bytes, off: int) -> str | None:
-    raw = data[off:off + NAME_MAX].split(b"\x00", 1)[0]
-    if not raw or not all(32 <= b < 127 for b in raw):
-        return None
-    return raw.decode("ascii")
-
-
 def analyze(table: TableSpec, data: bytes, samples: int = 6) -> NamesReport:
     if table.names_pointer_table is None:
         raise NamesError(f"{table.name}: o perfil não indica matriz de ponteiros de nomes")
@@ -81,7 +74,8 @@ def analyze(table: TableSpec, data: bytes, samples: int = 6) -> NamesReport:
             off = off if 0 <= off < len(data) else None
         except ValueError:
             off = None
-        entries.append(PointerEntry(i, ptr, off, _text(data, off) if off is not None else None))
+        hit = table.name_at(data, off) if off is not None else None
+        entries.append(PointerEntry(i, ptr, off, hit[2] if hit else None))
     runs, start = [], None
     for e in entries + [PointerEntry(n, 0, None, None)]:
         if e.name is not None and start is None:
@@ -118,10 +112,13 @@ def confirm_shift(profile_path: str | Path, table: str, shift: int, db: Findings
         db.save()
 
 
-def encode_name(table: TableSpec, data: bytes, index: int, text: str) -> tuple[int, bytes, bytes]:
-    """(offset, bytes antigos, bytes novos) para trocar o nome no mesmo espaço (preenche com NUL).
+def encode_name(table: TableSpec, data: bytes, index: int, text: str,
+                pad: bytes | None = None) -> tuple[int, bytes, bytes]:
+    """(offset, bytes antigos, bytes novos) para trocar o nome no mesmo espaço.
 
-    Texto maior que o original é recusado: exigiria realocar e ajustar ponteiros (fase de tradução).
+    Texto maior é recusado (exigiria realocar e ajustar ponteiros: fase de tradução). Nome solto termina em NUL:
+    o menor é completado com NUL. Nome dentro de um texto com campos ("…|Nome|…"): um NUL cortaria o resto do
+    texto, então o menor só é aceito com `pad` explícito (ex.: espaços, no Modo Pesquisa, experimental).
     """
     slot = table.name_slot(data, index)
     if slot is None:
@@ -131,9 +128,17 @@ def encode_name(table: TableSpec, data: bytes, index: int, text: str) -> tuple[i
         raw = text.encode("ascii")
     except UnicodeEncodeError:
         raise NamesError("só texto ASCII nesta fase (a tabela de caracteres do jogo ainda não foi mapeada)") from None
+    if not raw:
+        raise NamesError("nome vazio não é permitido")
+    if table.names_separator and table.names_separator.encode("ascii") in raw:
+        raise NamesError(f"o nome não pode conter o separador {table.names_separator!r}")
     if len(raw) > size:
         raise NamesError(f"'{text}' tem {len(raw)} bytes; o espaço original tem {size}. Texto maior exige realocar "
                          f"e ajustar ponteiros (fase de tradução)")
-    if not raw:
-        raise NamesError("nome vazio não é permitido")
-    return off, data[off:off + size], raw + b"\x00" * (size - len(raw))
+    if len(raw) < size:
+        if table.names_separator and pad is None:
+            raise NamesError(f"'{text}' tem {len(raw)} bytes e o nome original {size}: neste texto com campos o nome "
+                             f"precisa ter o mesmo tamanho (no Modo Pesquisa dá para completar com espaços, "
+                             f"experimental)")
+        raw += (pad or b"\x00") * (size - len(raw))
+    return off, data[off:off + size], raw

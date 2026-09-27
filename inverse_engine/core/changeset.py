@@ -167,14 +167,16 @@ class ChangeSet:
             if not pol.editable:
                 raise PatchError(f"nomes de {table}: {pol.reason}")
         data = image.read_file(t.file) if image.disc else image.data
-        off, old, new = encode_name(t, data, index, text)
+        pad = b" " if (research and t.names_separator) else None
+        off, old, new = encode_name(t, data, index, text, pad)
+        padded = bool(t.names_separator) and len(text.encode("ascii")) < len(old)
         before = old.decode("ascii")
         for op in self.ops:  # "antes" considera trocas anteriores do mesmo nome
             if op.kind == "text" and op.file == t.file and op.offset == off:
                 before = op.after
         return self._record(Operation(0, "text", f"{table}[{index}].nome", before, text, origin, t.names_finding,
-                                      file=t.file, offset=off, table=table, index=index, field="nome",
-                                      payload=new.hex().upper()))
+                                      experimental=padded, file=t.file, offset=off, table=table, index=index,
+                                      field="nome", payload=new.hex().upper()))
 
     def set_graphic(self, edit: GraphicEdit, origin: str = "manual") -> Operation:
         return self._record(Operation(0, "graphic", f"gráfico {edit.file}+0x{edit.offset:X}",

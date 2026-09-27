@@ -124,10 +124,11 @@ class CdBuilder:
 
 def make_slus(names: dict[int, str] | None = None, table_offset: int = 0xB5C, stride: int = 22,
               count: int = 215, pointer_table: int = 0x800, values: dict[tuple[int, int], bytes] | None = None,
-              size: int = 0x4000) -> bytes:
+              size: int = 0x4000, name_format: str = "I?000?000|{}|C1") -> bytes:
     """SLUS artificial: cabeçalho PS-X EXE, matriz de ponteiros de nomes e tabela de registros.
 
-    `values[(id, rel_offset)] = bytes` planta valores em registros.
+    `values[(id, rel_offset)] = bytes` planta valores em registros. Os textos seguem a estrutura vista na BIN
+    real ("prefixo|Nome|resto"); `name_format="{}"` gera nomes soltos terminados em NUL.
     """
     data = bytearray(size)
     data[:8] = b"PS-X EXE"
@@ -136,7 +137,7 @@ def make_slus(names: dict[int, str] | None = None, table_offset: int = 0xB5C, st
     text_at = table_offset + stride * count + 0x10
     names = names or {}
     for i in range(count):
-        name = names.get(i, f"ITEM{i:03d}").encode("ascii") + b"\x00"
+        name = name_format.format(names.get(i, f"ITEM{i:03d}")).encode("ascii") + b"\x00"
         struct.pack_into("<I", data, pointer_table + 4 * i, LOAD_ADDRESS + text_at - 0x800)
         data[text_at:text_at + len(name)] = name
         text_at += len(name)

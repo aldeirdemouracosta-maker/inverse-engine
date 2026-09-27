@@ -101,26 +101,44 @@ class TextEditTest(unittest.TestCase):
         self.image = RomImage.from_bytes(CdBuilder().build({"SLUS_009.40": self.data}))
 
     def test_menor_preenche_com_nul_e_maior_recusado(self):
-        off, old, new = names.encode_name(WEAPONS, self.data, 182, "Rebel")
-        self.assertEqual((old, new), (b"Rebelrod", b"Rebel\x00\x00\x00"))
+        # Nome solto (habilidades na fixture): o menor é completado com NUL.
+        off, old, new = names.encode_name(SKILLS, self.data, 0, "Golpe")
+        self.assertEqual((old, new), (b"Tecnica000", b"Golpe\x00\x00\x00\x00\x00"))
         with self.assertRaisesRegex(names.NamesError, "realocar"):
             names.encode_name(WEAPONS, self.data, 182, "RebelrodXL")
         with self.assertRaisesRegex(names.NamesError, "ASCII"):
             names.encode_name(WEAPONS, self.data, 182, "Rébel")
 
+    def test_nome_dentro_de_texto_com_campos(self):
+        # Armas: "I?000?000|Rebelrod|C1" (estrutura vista na BIN real). NUL cortaria o resto do texto.
+        off, old, new = names.encode_name(WEAPONS, self.data, 182, "Rodexzzz")
+        self.assertEqual((old, new), (b"Rebelrod", b"Rodexzzz"))
+        self.assertEqual(self.data[off - 10:off], b"I?000?000|")
+        with self.assertRaisesRegex(names.NamesError, "mesmo tamanho"):
+            names.encode_name(WEAPONS, self.data, 182, "Rebel")
+        self.assertEqual(names.encode_name(WEAPONS, self.data, 182, "Rebel", pad=b" ")[2], b"Rebel   ")
+        with self.assertRaisesRegex(names.NamesError, "separador"):
+            names.encode_name(WEAPONS, self.data, 182, "Reb|lrod")
+
     def test_trocar_nome_pelo_changeset(self):
         cs = ChangeSet("R").bind(self.image, PROFILE, FINDINGS)
-        op = cs.set_name("weapons", 182, "Rodex")
-        self.assertEqual((op.target, op.before, op.after), ("weapons[182].nome", "Rebelrod", "Rodex"))
-        op2 = cs.set_name("weapons", 182, "Rod")
-        self.assertEqual(op2.before, "Rodex")
+        op = cs.set_name("weapons", 182, "Rodexzzz")
+        self.assertEqual((op.target, op.before, op.after, op.experimental),
+                         ("weapons[182].nome", "Rebelrod", "Rodexzzz", False))
+        op2 = cs.set_name("weapons", 182, "RodRebel")
+        self.assertEqual(op2.before, "Rodexzzz")
         st = PatchStack(self.image, PROFILE, FINDINGS)
         for layer in cs.to_layers():
             st.add(layer)
         out = RomImage.from_bytes(st.build().data).read_file("SLUS_009.40")
-        self.assertEqual(WEAPONS.read_name(out, 182), "Rod")
+        self.assertEqual(WEAPONS.read_name(out, 182), "RodRebel")
+        self.assertIn(b"I?000?000|RodRebel|C1", out)  # o resto do texto continua intacto
         cs.undo()
-        self.assertEqual(cs.ops[-1].after, "Rodex")
+        self.assertEqual(cs.ops[-1].after, "Rodexzzz")
+        with self.assertRaises(names.NamesError):
+            cs.set_name("weapons", 182, "Rod")  # menor, fora do Modo Pesquisa
+        research = ChangeSet("P").bind(self.image, PROFILE, FINDINGS, research_mode=True)
+        self.assertTrue(research.set_name("weapons", 182, "Rod").experimental)  # completado com espaços
 
     def test_nomes_em_hipotese_so_no_modo_pesquisa(self):
         cs = ChangeSet("R").bind(self.image, PROFILE, FINDINGS)

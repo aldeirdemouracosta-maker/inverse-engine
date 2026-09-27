@@ -55,7 +55,9 @@
       "finding": "F-0001",
       "names": {
         "pointer_table": "0x800",
-        "finding": "F-0002"
+        "finding": "F-0002",
+        "separator": "|",
+        "field": 1
       },
       "groups": [
         {

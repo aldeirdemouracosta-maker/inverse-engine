@@ -51,6 +51,8 @@ class TableSpec:
     integrity_sha256: str | None = None
     names_shift: int = 0              # registro i usa o ponteiro i + shift (só depois de confirmado)
     names_status: str | None = None   # estado da hipótese dos nomes (informativo)
+    names_separator: str | None = None  # texto com campos (ex.: "I?200?017|Rebelrod|C1…"): separador
+    names_field: int = 0              # qual campo é o nome
     record_ram: int | None = None     # endereço de RAM do registro 0 (só com evidência)
     record_ram_finding: str | None = None
 
@@ -68,7 +70,8 @@ class TableSpec:
         return cls(name, d["file"], hexint(d["offset"]), d["stride"], d["count"], fields,
                    d.get("finding"), hexint(pt) if pt is not None else None,
                    names.get("finding"), d.get("groups", []), d.get("integrity_sha256"),
-                   int(names.get("shift", 0)), names.get("status"),
+                   int(names.get("shift", 0)), names.get("status"), names.get("separator"),
+                   int(names.get("field", 0)),
                    hexint(d["record_ram"]["address"]) if d.get("record_ram") else None,
                    d["record_ram"].get("finding") if d.get("record_ram") else None)
 
@@ -92,8 +95,8 @@ class TableSpec:
         f = self.fields[field_name]
         return struct.unpack_from(TYPES[f.type][0], data, self.field_offset(index, field_name))[0]
 
-    def read_name(self, data: bytes, index: int) -> str | None:
-        """Nome pela matriz de ponteiros (u32le, endereço de RAM). None se não resolver."""
+    def string_offset(self, data: bytes, index: int) -> int | None:
+        """Offset no arquivo do texto apontado pelo ponteiro do registro (u32le, endereço de RAM)."""
         if self.names_pointer_table is None or not 0 <= index < self.count:
             return None
         ptr_at = self.names_pointer_table + (index + self.names_shift) * 4
@@ -104,26 +107,39 @@ class TableSpec:
             off = PsExe.parse(data).ram_to_file(ptr)
         except ValueError:
             return None
-        if not 0 <= off < len(data):
+        return off if 0 <= off < len(data) else None
+
+    def name_at(self, data: bytes, off: int) -> tuple[int, int, str] | None:
+        """(offset do nome, tamanho, texto) dentro do texto que começa em `off`; None se não for um nome válido.
+
+        Sem separador, o nome é o texto até o NUL. Com separador, é o campo `names_field` (o resto do texto,
+        que pode ter bytes fora do ASCII, fica intocado).
+        """
+        raw = data[off:off + 4 * NAME_MAX].split(b"\x00", 1)[0]
+        start = off
+        if self.names_separator:
+            sep = self.names_separator.encode("ascii")
+            parts = raw.split(sep)
+            if len(parts) <= self.names_field:
+                return None
+            start += sum(len(parts[k]) + len(sep) for k in range(self.names_field))
+            raw = parts[self.names_field]
+        elif len(raw) > NAME_MAX:
             return None
-        raw = data[off:off + NAME_MAX].split(b"\x00", 1)[0]
-        try:
-            return raw.decode("ascii")
-        except UnicodeDecodeError:
+        if not raw or not all(32 <= b < 127 for b in raw):
             return None
+        return start, len(raw), raw.decode("ascii")
+
+    def read_name(self, data: bytes, index: int) -> str | None:
+        off = self.string_offset(data, index)
+        hit = self.name_at(data, off) if off is not None else None
+        return hit[2] if hit else None
 
     def name_slot(self, data: bytes, index: int) -> tuple[int, int] | None:
-        """(offset no arquivo, bytes do texto atual sem o NUL) do nome; espaço máximo para editar sem realocar."""
-        if self.names_pointer_table is None or not 0 <= index < self.count:
-            return None
-        ptr = struct.unpack_from("<I", data, self.names_pointer_table + (index + self.names_shift) * 4)[0]
-        try:
-            off = PsExe.parse(data).ram_to_file(ptr)
-        except ValueError:
-            return None
-        if not 0 <= off < len(data):
-            return None
-        return off, len(data[off:off + NAME_MAX].split(b"\x00", 1)[0])
+        """(offset no arquivo, tamanho) do nome: o espaço máximo para editar sem realocar."""
+        off = self.string_offset(data, index)
+        hit = self.name_at(data, off) if off is not None else None
+        return (hit[0], hit[1]) if hit else None
 
     def integrity(self, data: bytes) -> bool | None:
         """Confere o hash da tabela (None quando o perfil não tem hash para ela)."""

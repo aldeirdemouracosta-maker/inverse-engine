@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## Correção com a BIN real — nomes das armas
+- Diagnóstico na BIN real (SHA-256 2ee08a8f…48f1): os ponteiros em 0x800 são endereços de RAM
+  (t_addr 0x8006C000) e apontam para textos "prefixo|Nome|resto" (arma 182 → "I?200?017|Rebelrod|C1…").
+  O leitor lia o texto inteiro, achava bytes fora do ASCII depois do nome e devolvia None: a âncora
+  Rebelrod falhava e o perfil não se aplicava.
+- Perfil: `names.separator = "|"`, `names.field = 1` nas armas; `TableSpec.string_offset`, `name_at`
+- Troca de nome dentro de texto com campos: mesmo tamanho (NUL cortaria o resto do texto); no Modo
+  Pesquisa o menor é completado com espaços e marcado experimental; o separador é recusado no nome
+- F-0002 com a evidência da BIN real (continua PROVAVEL até a confirmação P3); F-0020 (prefixo
+  "I?NNN?NNN" e campos depois do nome) DESCONHECIDO
+- Fixture `make_slus` gera o mesmo formato "prefixo|Nome|resto"; CLI `nomes` mostra o texto bruto
+
 ## Marco 9 — áudio VAB (só leitura)
 - `formats/adpcm.py`: SPU-ADPCM (shift, 5 filtros, saturação em 16 bits, flags de fim/laço)
 - `formats/vab.py`: VH "pBAV" (programas, tons com nota central e ADSR, tabela de tamanhos), VB junto ou

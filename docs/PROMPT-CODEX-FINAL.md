@@ -34,7 +34,12 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
   importe no núcleo. Pode servir de referência de ideias: busca por valor/hex com curinga `??`/texto
   Shift-JIS, ChangeSet com undo/redo, prévia de aparência (direções, animação, GIF), prévia de falas com
   retrato. O que for aproveitado é **reescrito** no núcleo novo (sem Pillow) e na interface PySide6.
-- Os **marcos 1 a 9 estão prontos** (ver 0.2): 175 testes passando. Continue do **marco 10**.
+- Os **marcos 1 a 9 estão prontos** (ver 0.2): 176 testes passando. Continue do **marco 10**.
+- **Primeiro teste com a BIN real (feito pelo usuário):** SHA-256 confere com a BIN do LVCP; âncoras PS-X EXE e hash
+  da tabela de armas passaram; 33 bancos VAB achados em `SD_BULK.BIN`; arquivos do CD: SYSTEM.CNF, SLUS_009.40,
+  VH2DATA.BIN (152 MB), SD_BULK.BIN, AUDIOXA.STR (XA), DUMMY.BIN. Os nomes das armas estão em textos
+  "prefixo|Nome|resto" (perfil: `names.separator`/`names.field`); com isso a âncora Rebelrod passa a funcionar.
+  Os nomes de habilidades e armaduras ainda não foram vistos na BIN real: rode `nomes` antes de supor o formato.
 
 ### 0.1 Estrutura do repositório
 ```

@@ -29,13 +29,18 @@
       "id": "F-0002",
       "subject": "weapons.names",
       "file": "SLUS_009.40",
-      "interpretation": "matriz de ponteiros de nomes em 0x800; sobe a CONFIRMADO quando a âncora Rebelrod (id 182) passar na imagem aberta",
+      "interpretation": "matriz de ponteiros (u32, endereço de RAM) em 0x800; cada ponteiro aponta para um texto 'prefixo|Nome|resto' e o nome é o 2º campo",
       "status": "PROVAVEL",
       "evidence": [
         {
           "kind": "lvcp_evidence",
           "detail": "ponteiros imediatamente antes da tabela",
           "date": null
+        },
+        {
+          "kind": "static_values",
+          "detail": "BIN real (SHA-256 2ee08a8f…48f1), diagnóstico do usuário: ponteiros em 0x800 são endereços de RAM com t_addr 0x8006C000; arma 182 → 0x8008ECEC → 'I?200?017|Rebelrod|C1…'; armas 1, 2, 181, 183 e 214 no mesmo formato; arma 0 sem '|' (registro vazio)",
+          "date": "2026-09-27"
         }
       ],
       "profiles": [
@@ -893,6 +898,24 @@
       "interpretation": "sem interpretação",
       "status": "DESCONHECIDO",
       "evidence": [],
+      "profiles": [
+        "SLUS-00940-USA"
+      ],
+      "history": []
+    },
+    {
+      "id": "F-0020",
+      "subject": "weapons.name_prefix",
+      "file": "SLUS_009.40",
+      "interpretation": "prefixo 'I?NNN?NNN' antes do nome (ex.: I?200?017 na arma 182) e campos depois do 2º '|': significado desconhecido",
+      "status": "DESCONHECIDO",
+      "evidence": [
+        {
+          "kind": "static_values",
+          "detail": "visto na BIN real em 7 armas; os números variam por arma",
+          "date": "2026-09-27"
+        }
+      ],
       "profiles": [
         "SLUS-00940-USA"
       ],
