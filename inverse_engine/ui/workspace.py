@@ -24,7 +24,7 @@ from inverse_engine.core.export import export, output_paths, ExportError
 from inverse_engine.core.patch_stack import GraphicEdit, PatchError
 from inverse_engine.core.project import Project, ProjectError
 from inverse_engine.formats import tim
-from inverse_engine.formats import memcard, vab, wav
+from inverse_engine.formats import memcard, tmd, vab, wav
 from inverse_engine.research import cheats, gabarito, profiler, testbin
 from inverse_engine.research.findings import EVIDENCE_KINDS, STATES, FindingError
 from inverse_engine.ui import recent, terminal
@@ -128,6 +128,7 @@ class Workspace(QMainWindow):
         self._build_cheats_tab()
         self._build_memcard_tab()
         self._build_audio_tab()
+        self._build_models_tab()
         # Exportar
         w = QWidget()
         v = QVBoxLayout(w)
@@ -320,6 +321,37 @@ class Workspace(QMainWindow):
         self.vabs: list = []
         self._effect = None
         self.audio_tab_index = self.tabs.addTab(w, "Á&udio")
+
+    def _build_models_tab(self) -> None:
+        from inverse_engine.ui.model_view import ModelView
+        w = QWidget()
+        v = QVBoxLayout(w)
+        row = QHBoxLayout()
+        row.addWidget(_btn("Procurar T&MD", self.scan_tmds, "Modelos 3D da Sony (id 0x41) em todos os arquivos"))
+        row.addWidget(_btn("Exportar OBJ…", self.export_obj))
+        row.addStretch(1)
+        v.addLayout(row)
+        v.addWidget(QLabel("O VH2 usa sprites nos personagens: é normal não achar TMD. Isso não é erro."))
+        h = QHBoxLayout()
+        col = QVBoxLayout()
+        self.tmd_list = QListWidget()
+        self.tmd_list.setAccessibleName("Modelos TMD encontrados")
+        self.tmd_list.currentRowChanged.connect(lambda _r: self._tmd_selected())
+        col.addWidget(self.tmd_list, 2)
+        self.tmd_objects = QListWidget()
+        self.tmd_objects.setAccessibleName("Objetos do modelo")
+        self.tmd_objects.currentRowChanged.connect(lambda _r: self._tmd_object_selected())
+        col.addWidget(self.tmd_objects, 1)
+        self.tmd_info = QLabel("")
+        self.tmd_info.setWordWrap(True)
+        self.tmd_info.setAccessibleName("Contagens do objeto")
+        col.addWidget(self.tmd_info)
+        h.addLayout(col, 1)
+        self.model_view = ModelView()
+        h.addWidget(self.model_view, 2)
+        v.addLayout(h, 1)
+        self.tmds: list = []
+        self.models_tab_index = self.tabs.addTab(w, "Modelos &3D")
 
     def _dock(self, title: str, widget: QWidget, area) -> QDockWidget:
         d = QDockWidget(title, self)
@@ -1296,6 +1328,56 @@ class Workspace(QMainWindow):
         self._effect = QSoundEffect(self)
         self._effect.setSource(QUrl.fromLocalFile(str(tmp)))
         self._effect.play()
+
+    # ------------------------------------------------------------------ modelos 3D
+    def scan_tmds(self) -> None:
+        self.tmds = tmd.scan_image(self.image)
+        self.tmd_list.clear()
+        for path, t in self.tmds:
+            nv = sum(len(o.vertices) for o in t.objects)
+            self.tmd_list.addItem(f"{path} 0x{t.offset:X} — {len(t.objects)} objeto(s), {nv} vértices")
+        self.log(f"{len(self.tmds)} modelo(s) TMD" + ("" if self.tmds else " (normal no VH2: personagens são sprites)"),
+                 f"{terminal.CLI} tmd {terminal.q(self.image.path)}")
+
+    def _current_tmd(self):
+        r = self.tmd_list.currentRow()
+        return self.tmds[r] if 0 <= r < len(self.tmds) else None
+
+    def _tmd_selected(self) -> None:
+        self.tmd_objects.clear()
+        cur = self._current_tmd()
+        if cur is None:
+            return
+        for k, o in enumerate(cur[1].objects):
+            self.tmd_objects.addItem(f"objeto {k}: {len(o.vertices)} vértices, {o.faces} faces")
+        self.tmd_objects.setCurrentRow(0)
+
+    def _tmd_object_selected(self) -> None:
+        cur = self._current_tmd()
+        k = self.tmd_objects.currentRow()
+        if cur is None or k < 0:
+            return
+        o = cur[1].objects[k]
+        self.model_view.set_model(o)
+        counts = ", ".join(f"{n}: {c}" for n, c in sorted(o.counts().items()))
+        self.tmd_info.setText(f"{len(o.vertices)} vértices, {len(o.normals)} normais, {o.faces} faces\n{counts}")
+
+    def export_obj(self, target: str | None = None) -> Path | None:
+        cur = self._current_tmd()
+        if cur is None:
+            self.log("Selecione um modelo")
+            return None
+        path, t = cur
+        if target is None:
+            target, _ = QFileDialog.getSaveFileName(self, "Exportar OBJ", f"{Path(path).name}_{t.offset:X}.obj",
+                                                    "OBJ (*.obj)")
+            if not target:
+                return None
+        Path(target).write_text(tmd.to_obj(t, f"{path} 0x{t.offset:X}"), encoding="utf-8")
+        self.log(f"OBJ exportado: {target}",
+                 f"{terminal.CLI} tmd {terminal.q(self.image.path)} --exportar {terminal.q(path)} 0x{t.offset:X} "
+                 f"{terminal.q(target)}")
+        return Path(target)
 
     # ------------------------------------------------------------------ exportação (P2)
     def review_text(self) -> str:

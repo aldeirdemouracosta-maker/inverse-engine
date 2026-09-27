@@ -37,6 +37,7 @@ class App(QMainWindow):
         self.menu.options.connect(self.options)
         self.menu.cheats.connect(self.open_cheats)
         self.menu.audio.connect(lambda: self.open_tab("audio_tab_index"))
+        self.menu.models.connect(lambda: self.open_tab("models_tab_index"))
         self.menu.quit.connect(self.close)
         self.workspace.back.connect(self.show_menu)
         self.apply_theme()

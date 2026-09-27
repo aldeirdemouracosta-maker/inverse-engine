@@ -24,6 +24,7 @@
     python -m inverse_engine.cli cheat IMAGEM weapons 182 attack 45 [--pesquisa] [--cht saida.cht]
     python -m inverse_engine.cli memcard CARTAO.mcr [--exportar N saida.mcs] [--importar save.mcs --saida novo.mcr]
     python -m inverse_engine.cli vab IMAGEM [--exportar ARQUIVO_NO_CD OFFSET PASTA]   # bancos de som → WAV
+    python -m inverse_engine.cli tmd IMAGEM [--exportar ARQUIVO_NO_CD OFFSET saida.obj]   # modelos 3D → OBJ
 """
 from __future__ import annotations
 
@@ -340,6 +341,26 @@ def cmd_vab(args) -> int:
     return 0
 
 
+def cmd_tmd(args) -> int:
+    from inverse_engine.formats import tmd
+    image = RomImage.open(args.imagem)
+    found = tmd.scan_image(image)
+    for path, t in found:
+        faces = sum(o.faces for o in t.objects)
+        unknown = sum(1 for o in t.objects for p in o.primitives if not p.known)
+        print(f"{path:<32} 0x{t.offset:08X}  objetos {len(t.objects):>3}  "
+              f"vértices {sum(len(o.vertices) for o in t.objects):>5}  faces {faces:>5}  não decodificadas {unknown}")
+    print(f"{len(found)} modelo(s) TMD" + ("" if found else " (normal no VH2: os personagens são sprites)"))
+    if args.exportar:
+        name, off, out = args.exportar
+        t = next((x for p, x in found if p.upper() == name.upper() and x.offset == int(off, 0)), None)
+        if t is None:
+            raise ValueError(f"nenhum TMD em {name} {off}")
+        Path(out).write_text(tmd.to_obj(t, f"{name} {off}"), encoding="utf-8")
+        print(f"OBJ gravado: {out}")
+    return 0
+
+
 def _findings_for(profile_id: str) -> FindingsDB:
     p = FINDINGS / f"{profile_id}.json"
     return FindingsDB.load(p) if p.exists() else FindingsDB({"findings": []})
@@ -435,6 +456,10 @@ def main(argv=None) -> int:
     vb.add_argument("imagem")
     vb.add_argument("--exportar", nargs=3, metavar=("ARQUIVO", "OFFSET", "PASTA"))
     vb.set_defaults(func=cmd_vab)
+    tm = sub.add_parser("tmd", help="lista modelos 3D TMD e exporta para OBJ")
+    tm.add_argument("imagem")
+    tm.add_argument("--exportar", nargs=3, metavar=("ARQUIVO", "OFFSET", "SAIDA.obj"))
+    tm.set_defaults(func=cmd_tmd)
     args = ap.parse_args(argv)
     try:
         return args.func(args)

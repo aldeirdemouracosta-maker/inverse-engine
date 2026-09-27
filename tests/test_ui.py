@@ -345,6 +345,29 @@ class UiTest(unittest.TestCase):
         self.assertEqual(len(ws.export_all_wav(str(root / "wavs"))), 2)
         self.assertIn("vab", ws.term_view.toPlainText())
 
+    def test_modelos_3d(self):
+        from tests.fixture_cd import CdBuilder
+        from tests.test_tmd import build_tmd
+        root = Path(self.tmp.name)
+        b = root / "modelo.bin"
+        b.write_bytes(CdBuilder().build({"MODEL/A.TMD": build_tmd()}))
+        self.app.start_project(b, root / "p7", "Modelo")
+        ws = self.app.workspace
+        self.app.show_menu()
+        self.app.open_tab("models_tab_index")
+        self.assertEqual(ws.tabs.currentIndex(), ws.models_tab_index)
+        ws.scan_tmds()
+        self.assertEqual(ws.tmd_list.count(), 1)
+        ws.tmd_list.setCurrentRow(0)
+        self.assertEqual(ws.tmd_objects.count(), 2)
+        self.assertEqual(len(ws.model_view.edges), 5)   # contorno do quad (01, 13, 32, 20) + diagonal 12 dos triângulos
+        self.assertIn("4 faces", ws.tmd_info.text())
+        ws.model_view.resize(300, 200)
+        self.assertFalse(ws.model_view.grab().isNull())
+        out = ws.export_obj(str(root / "a.obj"))
+        self.assertEqual(sum(l.startswith("f ") for l in out.read_text().splitlines()), 5)
+        self.assertIn("tmd", ws.term_view.toPlainText())
+
     def test_sem_perfil_so_formatos_genericos(self):
         other = Path(self.tmp.name) / "outro.bin"
         from tests.fixture_cd import CdBuilder

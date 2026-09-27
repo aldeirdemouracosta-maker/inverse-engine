@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## Marco 10 — modelos TMD (só leitura)
+- `formats/tmd.py`: cabeçalho 0x41 (ponteiros relativos ou FIXP), objetos, vértices, normais, primitivas;
+  8 layouts de polígono com luz decodificados (triângulo/quadrilátero, plano/Gouraud, com/sem textura);
+  sem luz ou índice fora do intervalo → contado como "layout desconhecido", nunca inventado;
+  UV, CBA e TSB; `find_texture` associa o TIM pela página de textura e pela posição da paleta na VRAM;
+  exportação OBJ (quad → 2 triângulos na ordem do PS1)
+- Aba Modelos 3D com visualizador em arame (QPainter: mouse/setas giram, roda/+/- dão zoom), sem
+  depender de OpenGL; botão "Modelos 3D" do menu ativado (todos os botões do menu ativos)
+- CLI `tmd [--exportar ARQUIVO OFFSET saida.obj]`
+- Layouts escritos a partir da documentação; ainda não conferidos com um TMD real
+
 ## Correção com a BIN real — nomes das armas
 - Diagnóstico na BIN real (SHA-256 2ee08a8f…48f1): os ponteiros em 0x800 são endereços de RAM
   (t_addr 0x8006C000) e apontam para textos "prefixo|Nome|resto" (arma 182 → "I?200?017|Rebelrod|C1…").

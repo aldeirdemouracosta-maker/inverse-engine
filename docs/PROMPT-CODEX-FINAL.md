@@ -1,7 +1,7 @@
 # Prompt para o Codex — terminar o Inverse Engine (VH2 Studio como primeiro perfil)
 
 Repositório: https://github.com/aldeirdemouracosta-maker/inverse-engine (branch `main`).
-**Os marcos 1 a 9 estão prontos (núcleo, interface PySide6, Modo Pesquisa, tabelas genéricas, cheats, memory card e áudio VAB). Comece pelo marco 10 (modelos TMD).**
+**Os marcos 1 a 10 estão prontos (núcleo, interface PySide6, Modo Pesquisa, tabelas, cheats, memory card, áudio VAB e modelos TMD). Comece pelo marco 11 (automação).**
 Trabalhe **nesse repositório**, marco por marco, com um commit por marco e todos os testes passando.
 
 ## 0. Leia antes de começar
@@ -29,12 +29,12 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
 - O código da **v1.1 do VH2 Studio foi perdido** (`vh2_disc.py`, `vh2_tim.py`, `ppf.py`, `bps_patch.py`,
   `vh2_rom_editor.py`, `vh2_studio.py` e as 137 verificações). **Não procure por ele.** EDC/ECC, PPF, BPS,
   TIM/PNG, camadas, ChangeSet, projeto, exportação, relatório e hexa já foram reescritos nos marcos 2 a 4;
-  a interface PySide6 no marco 5, o Modo Pesquisa no marco 6 as tabelas genéricas no marco 7, cheats/memory card no marco 8 e áudio VAB no marco 9; o resto é escrito nos marcos 10 em diante.
+  a interface PySide6 no marco 5, o Modo Pesquisa no marco 6 as tabelas genéricas no marco 7, cheats/memory card no marco 8, áudio VAB no marco 9 e TMD no marco 10; o resto é escrito nos marcos 11 em diante.
 - `legado/VH2-PS1-Studio-v3.0/` guarda a v3.0-alpha (Tkinter + Pillow + IPS). **Não altere essa pasta** e não a
   importe no núcleo. Pode servir de referência de ideias: busca por valor/hex com curinga `??`/texto
   Shift-JIS, ChangeSet com undo/redo, prévia de aparência (direções, animação, GIF), prévia de falas com
   retrato. O que for aproveitado é **reescrito** no núcleo novo (sem Pillow) e na interface PySide6.
-- Os **marcos 1 a 9 estão prontos** (ver 0.2): 176 testes passando. Continue do **marco 10**.
+- Os **marcos 1 a 10 estão prontos** (ver 0.2): 182 testes passando. Continue do **marco 11**.
 - **Primeiro teste com a BIN real (feito pelo usuário):** SHA-256 confere com a BIN do LVCP; âncoras PS-X EXE e hash
   da tabela de armas passaram; 33 bancos VAB achados em `SD_BULK.BIN`; arquivos do CD: SYSTEM.CNF, SLUS_009.40,
   VH2DATA.BIN (152 MB), SD_BULK.BIN, AUDIOXA.STR (XA), DUMMY.BIN. Os nomes das armas estão em textos
@@ -46,7 +46,7 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
 inverse_engine/
   cli.py                      modo terminal: abrir | tabela | findings  (python -m inverse_engine.cli)
   core/      rom_image.py profile.py patch_stack.py paths.py changeset.py project.py export.py hexview.py (prontos)
-  formats/   disc.py psexe.py edc_ecc.py ppf.py bps.py tim.py png.py memcard.py adpcm.py vab.py wav.py (prontos)  tmd.py (fazer)
+  formats/   disc.py psexe.py edc_ecc.py ppf.py bps.py tim.py png.py memcard.py adpcm.py vab.py wav.py tmd.py (prontos)
   research/  findings.py profiler.py gabarito.py testbin.py names.py cheats.py (prontos)
   assistant/ rules.py ollama.py context.py      (fazer)
   scripting/ api.py console.py                  (fazer)
@@ -54,7 +54,7 @@ inverse_engine/
 profiles/SLUS-00940-USA.json          perfil (armas + habilidades)
 research/findings/SLUS-00940-USA.json findings iniciais (F-0001…F-0016, S-0001…S-0003, S-0010…S-0021)
 tests/  fixture_cd.py  test_rom_image.py  test_profile_anchors.py  test_profile_data.py
-        test_edc_ecc.py  test_ppf_bps.py  test_tim_png.py  test_patch_stack.py  test_changeset_project.py  test_export_hexview.py  test_ui.py  test_research.py  test_tables_names.py  test_cheats_memcard.py  test_vab.py
+        test_edc_ecc.py  test_ppf_bps.py  test_tim_png.py  test_patch_stack.py  test_changeset_project.py  test_export_hexview.py  test_ui.py  test_research.py  test_tables_names.py  test_cheats_memcard.py  test_vab.py  test_tmd.py
 legado/ VH2-PS1-Studio-v3.0 (somente referência)
 .github/workflows/tests.yml  (ubuntu-latest, Python 3.10 e 3.12, QT_QPA_PLATFORM=offscreen, PySide6)
 ```
@@ -176,6 +176,13 @@ Rodar os testes: `python -m unittest discover -s tests -t .` (sempre com `-t .`;
   `App.open_tab(nome_do_atributo_da_aba)` para botões do menu que levam a uma aba. `tests/test_vab.py` tem
   `build_vab(amostras)` e `block(nibbles, shift, filt, flags)` para fixtures. O botão "Modelos 3D" do menu é o
   único ainda desativado: ative-o no marco 10.
+- Modelos (marco 10): `formats/tmd.py` `parse`, `scan`, `scan_image` → `Tmd(offset, size, flags, objects[TmdObject(
+  vertices, normals, primitives[Primitive(mode, flag, kind, vertices, uv, cba, tsb, known)], scale, counts(), faces)])`,
+  `LAYOUTS` (8 layouts com luz; os demais ficam "layout desconhecido"), `texture_page`, `clut_position`,
+  `find_texture(prim, [(arquivo, TimInfo)])`, `to_obj`. `ui/model_view.py` `ModelView` (arame em QPainter). Todos os
+  botões do menu estão ativos. **Os layouts de primitiva vêm da documentação e não foram conferidos com um TMD real:**
+  se aparecer um TMD em outro jogo, confira antes de ampliar a tabela. Visualizador OpenGL com textura continua
+  como melhoria opcional (o QPainter cobre o CI sem GPU).
 
 Se precisar mudar uma dessas APIs, adapte os testes **mantendo a mesma verificação**. Nunca apague nem
 enfraqueça um teste.
@@ -802,7 +809,7 @@ exportado é distribuído pelo projeto.
    arquivos (e VH/VB separados quando o VB vier em outro arquivo: registrar como HIPOTESE); aba "Áudio" com lista
    de programas/amostras, forma de onda (QPainter), tocar (QtMultimedia é opcional: sem ele, só exportar WAV) e
    exportar; ative o botão "Áudio e texturas" do menu. Aceite: VAB sintético decodificado para WAV igual ao esperado.
-10. **Modelos TMD** (só leitura). `formats/tmd.py` (ver 0.4): objetos, vértices, normais, primitivas (triângulos e
+10. ~~Modelos TMD~~ **pronto** (só leitura; visualizador em QPainter). `formats/tmd.py` (ver 0.4): objetos, vértices, normais, primitivas (triângulos e
     quadriláteros, planos/Gouraud, com e sem textura: UV, CBA/TSB → página de textura e paleta na VRAM);
     `scan`/`scan_image` como os outros formatos; exportar OBJ (+ MTL apontando para o PNG do TIM cuja posição de
     VRAM bater com a TSB/CBA, quando houver); aba "Modelos 3D" com visualizador `QOpenGLWidget` (girar/zoom com
