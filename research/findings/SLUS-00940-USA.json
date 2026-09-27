@@ -30,7 +30,7 @@
       "subject": "weapons.names",
       "file": "SLUS_009.40",
       "interpretation": "matriz de ponteiros (u32, endereço de RAM) em 0x800; cada ponteiro aponta para um texto 'prefixo|Nome|resto' e o nome é o 2º campo",
-      "status": "PROVAVEL",
+      "status": "CONFIRMADO",
       "evidence": [
         {
           "kind": "lvcp_evidence",
@@ -41,12 +41,24 @@
           "kind": "static_values",
           "detail": "BIN real (SHA-256 2ee08a8f…48f1), diagnóstico do usuário: ponteiros em 0x800 são endereços de RAM com t_addr 0x8006C000; arma 182 → 0x8008ECEC → 'I?200?017|Rebelrod|C1…'; armas 1, 2, 181, 183 e 214 no mesmo formato; arma 0 sem '|' (registro vazio)",
           "date": "2026-09-27"
+        },
+        {
+          "kind": "static_values",
+          "detail": "BIN real (SHA-256 2ee08a8f…48f1): as 3 âncoras passaram (PS-X EXE, hash da tabela de armas, weapons[182] = 'Rebelrod' lido pela matriz de ponteiros em 0x800 com separador '|'); promoção autorizada pelo usuário (P3)",
+          "date": "2026-09-27"
         }
       ],
       "profiles": [
         "SLUS-00940-USA"
       ],
-      "history": []
+      "history": [
+        {
+          "date": "2026-09-27",
+          "from": "PROVAVEL",
+          "to": "CONFIRMADO",
+          "why": "âncora Rebelrod passou na BIN real; confirmação do usuário (portão P3) em 2026-09-27"
+        }
+      ]
     },
     {
       "id": "F-0010",
@@ -198,6 +210,11 @@
         {
           "kind": "static_values",
           "detail": "BIN real (2ee08a8f…): os ponteiros em 0x15A1C apontam para textos 'prefixo|Nome|resto' com prefixo vazio: [0] '|Blaze Slash|C2$…', [1] '|First Aid|', [2] '|Thunderbolt|C2$…', [3] '|Growmark|C4$…'. Alinhamento 204 × 203 ainda em aberto.",
+          "date": "2026-09-27"
+        },
+        {
+          "kind": "static_values",
+          "detail": "BIN real com leitura por campo: os 204 ponteiros de 0x15A1C a 0x15D4C são todos válidos (sequência única, nenhuma entrada inválida); a quebra 143 + 60 do LVCP não se repete. Divergência +1 continua: shift 0 → registro 0 = 'Blaze Slash' e sobra o ponteiro 203 ('Dark Circle'); shift 1 → registro 0 = 'First Aid' e o ponteiro 0 ('Blaze Slash') fica sem registro. Decidir com gabarito CSV ou teste no jogo.",
           "date": "2026-09-27"
         }
       ],
@@ -511,18 +528,30 @@
       "subject": "armors.names",
       "file": "SLUS_009.40",
       "interpretation": "nomes via ponteiros em 0x16D2C (158 ponteiros)",
-      "status": "HIPOTESE",
+      "status": "PROVAVEL",
       "evidence": [
         {
           "kind": "static_values",
           "detail": "BIN real (2ee08a8f…): os ponteiros em 0x16D2C apontam para textos no formato das armas: [0] 'I?057?019|R-angel|C1$…', [1] 'I?408?022|Magerobe|C1$…', [2] 'I?403?031|L-tour|…', [3] 'I?256?045|A-royal|…'",
+          "date": "2026-09-27"
+        },
+        {
+          "kind": "static_values",
+          "detail": "BIN real: 158 ponteiros × 158 registros, todos válidos, sequência única 0x16D2C (158); [0] R-angel, [1] Magerobe, [2] L-tour, [3] A-royal, [4] L-skirt, [5] Armor … [156] Fearbody, [157] '???' (marcador, como a arma 214)",
           "date": "2026-09-27"
         }
       ],
       "profiles": [
         "SLUS-00940-USA"
       ],
-      "history": []
+      "history": [
+        {
+          "date": "2026-09-27",
+          "from": "HIPOTESE",
+          "to": "PROVAVEL",
+          "why": "158 nomes válidos na BIN real, sem divergência"
+        }
+      ]
     },
     {
       "id": "A-0016",
