@@ -227,6 +227,11 @@
           "kind": "static_values",
           "detail": "BIN real com leitura por campo: os 204 ponteiros de 0x15A1C a 0x15D4C são todos válidos (sequência única, nenhuma entrada inválida); a quebra 143 + 60 do LVCP não se repete. Divergência +1 continua: shift 0 → registro 0 = 'Blaze Slash' e sobra o ponteiro 203 ('Dark Circle'); shift 1 → registro 0 = 'First Aid' e o ponteiro 0 ('Blaze Slash') fica sem registro. Decidir com gabarito CSV ou teste no jogo.",
           "date": "2026-09-27"
+        },
+        {
+          "kind": "static_values",
+          "detail": "bytes 0x84–0x92: shift 0 põe Exodus no 0x88 (formato de ataque) e Unlock no 0x89 (formato utilitário); shift 1 põe Glacialla no 0x8A (formato de ataque) em vez de Searchmark. Indícios para os dois lados. Teste proposto: custo de MP da Exodus no jogo (0x1F = 31 no 0x88, 0x1E = 30 no 0x87) ou BIN de teste com +0x01 do 0x88 = 1",
+          "date": "2026-09-27"
         }
       ],
       "profiles": [
@@ -269,12 +274,25 @@
       "size": 1,
       "type": "u8",
       "interpretation": "sem interpretação",
-      "status": "DESCONHECIDO",
-      "evidence": [],
+      "status": "HIPOTESE",
+      "evidence": [
+        {
+          "kind": "static_values",
+          "detail": "+0x01 cresce dentro do grupo (1a 1c 1c 1e 1f 21 22 23 24 24 26; 55 no 0x90): nível, custo ou força?. registros 0x84–0x92 na BIN real (diagnóstico do usuário, 2026-09-27): 0x84 01 1a … a4 37 | 0x85 00 1c … a5 50 | 0x86 02 1c … a6 39 | 0x87 03 1e … a8 40 | 0x88 05 1f … a9 44 | 0x89 00 00 00 01 07 00 05 21 … 01 aa 00 | 0x8a 06 21 … ab 46 | … | 0x90 06 55 … b1 8c | 0x91/0x92 formato diferente (+0x06 = 06, +0x0F = 7a/7b)",
+          "date": "2026-09-27"
+        }
+      ],
       "profiles": [
         "SLUS-00940-USA"
       ],
-      "history": []
+      "history": [
+        {
+          "date": "2026-09-27",
+          "from": "DESCONHECIDO",
+          "to": "HIPOTESE",
+          "why": "+0x01 cresce dentro do grupo (1a 1c 1c 1e 1f 21 22 23 24 24 26; 55 no 0x90): nível, custo ou força?"
+        }
+      ]
     },
     {
       "id": "S-0018",
@@ -479,12 +497,25 @@
       "size": 1,
       "type": "u8",
       "interpretation": "sem interpretação",
-      "status": "DESCONHECIDO",
-      "evidence": [],
+      "status": "HIPOTESE",
+      "evidence": [
+        {
+          "kind": "static_values",
+          "detail": "+0x0F sobe 1 por registro (a4 a5 a6 a8 a9 … b1) e pula a7: ID sequencial (efeito/texto/animação?); o salto pode ter relação com o nome sobrando (204 × 203). registros 0x84–0x92 na BIN real (diagnóstico do usuário, 2026-09-27): 0x84 01 1a … a4 37 | 0x85 00 1c … a5 50 | 0x86 02 1c … a6 39 | 0x87 03 1e … a8 40 | 0x88 05 1f … a9 44 | 0x89 00 00 00 01 07 00 05 21 … 01 aa 00 | 0x8a 06 21 … ab 46 | … | 0x90 06 55 … b1 8c | 0x91/0x92 formato diferente (+0x06 = 06, +0x0F = 7a/7b)",
+          "date": "2026-09-27"
+        }
+      ],
       "profiles": [
         "SLUS-00940-USA"
       ],
-      "history": []
+      "history": [
+        {
+          "date": "2026-09-27",
+          "from": "DESCONHECIDO",
+          "to": "HIPOTESE",
+          "why": "+0x0F sobe 1 por registro (a4 a5 a6 a8 a9 … b1) e pula a7: ID sequencial (efeito/texto/animação?); o salto pode ter relação com o nome sobrando (204 × 203)"
+        }
+      ]
     },
     {
       "id": "S-0032",
@@ -494,12 +525,25 @@
       "size": 1,
       "type": "u8",
       "interpretation": "sem interpretação",
-      "status": "DESCONHECIDO",
-      "evidence": [],
+      "status": "HIPOTESE",
+      "evidence": [
+        {
+          "kind": "static_values",
+          "detail": "+0x10 varia por magia de ataque (37 50 39 40 44 46 4c 73 4e 5e 60 8c) e é 00 nas utilitárias: poder?. registros 0x84–0x92 na BIN real (diagnóstico do usuário, 2026-09-27): 0x84 01 1a … a4 37 | 0x85 00 1c … a5 50 | 0x86 02 1c … a6 39 | 0x87 03 1e … a8 40 | 0x88 05 1f … a9 44 | 0x89 00 00 00 01 07 00 05 21 … 01 aa 00 | 0x8a 06 21 … ab 46 | … | 0x90 06 55 … b1 8c | 0x91/0x92 formato diferente (+0x06 = 06, +0x0F = 7a/7b)",
+          "date": "2026-09-27"
+        }
+      ],
       "profiles": [
         "SLUS-00940-USA"
       ],
-      "history": []
+      "history": [
+        {
+          "date": "2026-09-27",
+          "from": "DESCONHECIDO",
+          "to": "HIPOTESE",
+          "why": "+0x10 varia por magia de ataque (37 50 39 40 44 46 4c 73 4e 5e 60 8c) e é 00 nas utilitárias: poder?"
+        }
+      ]
     },
     {
       "id": "S-0033",
