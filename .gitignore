@@ -17,3 +17,6 @@ export/
 __pycache__/
 *.pyc
 .venv/
+build/
+dist/
+*.AppImage

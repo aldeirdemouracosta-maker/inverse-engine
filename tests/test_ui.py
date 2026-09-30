@@ -71,7 +71,7 @@ def json_status(path):
 
 def repo_profile_shift(table):
     import json
-    d = json.loads((Path(__file__).resolve().parent.parent / "profiles" / "SLUS-00940-USA.json").read_text())
+    d = json.loads((Path(__file__).resolve().parent.parent / "profiles" / "SLUS-00940-USA.json").read_text(encoding="utf-8"))
     return d["tables"][table].get("names", {}).get("shift", 0)
 
 
@@ -304,7 +304,7 @@ class UiTest(unittest.TestCase):
         self.assertIn(c.lines[0], ws.cheat_view.toPlainText())
         self.assertIn("cheat", ws.term_view.toPlainText())
         out = ws.export_cheats("cht", str(root / "vh2.cht"))
-        self.assertIn("Type = Gameshark", out.read_text())
+        self.assertIn("Type = Gameshark", out.read_text(encoding="utf-8"))
         card = root / "cartao.mcr"
         blank = memcard.MemCard.blank()
         blank.import_mcs(make_mcs())
@@ -368,7 +368,7 @@ class UiTest(unittest.TestCase):
         ws.model_view.resize(300, 200)
         self.assertFalse(ws.model_view.grab().isNull())
         out = ws.export_obj(str(root / "a.obj"))
-        self.assertEqual(sum(l.startswith("f ") for l in out.read_text().splitlines()), 5)
+        self.assertEqual(sum(l.startswith("f ") for l in out.read_text(encoding="utf-8").splitlines()), 5)
         self.assertIn("tmd", ws.term_view.toPlainText())
 
     def test_sem_perfil_so_formatos_genericos(self):

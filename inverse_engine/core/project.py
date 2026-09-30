@@ -15,12 +15,13 @@ from inverse_engine.core.changeset import ChangeSet
 from inverse_engine.core.patch_stack import Layer, PatchStack, PatchError
 from inverse_engine.core.profile import RomProfile
 from inverse_engine.core.rom_image import RomImage
+from inverse_engine.core.resources import DATA_ROOT
 from inverse_engine.formats import bps, ppf
 from inverse_engine.research.findings import FindingsDB
 
 EXT = ".vh2proj.json"
 FORMAT = 1
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = DATA_ROOT
 
 
 class ProjectError(ValueError):

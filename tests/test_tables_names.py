@@ -82,13 +82,13 @@ class NamesAnalysisTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             prof = Path(d) / "perfil.json"
             shutil.copy(ROOT / "profiles" / "SLUS-00940-USA.json", prof)
-            before = prof.read_text()
+            before = prof.read_text(encoding="utf-8")
             db = copy.deepcopy(FINDINGS)
             with self.assertRaisesRegex(names.NamesError, "confirmação"):
                 names.confirm_shift(prof, "skills", 1, db, "conferi no menu")
             with self.assertRaisesRegex(names.NamesError, "evidência"):
                 names.confirm_shift(prof, "skills", 1, db, " ", confirmed=True)
-            self.assertEqual(prof.read_text(), before)
+            self.assertEqual(prof.read_text(encoding="utf-8"), before)
             db.path = Path(d) / "f.json"
             names.confirm_shift(prof, "skills", 1, db, "nomes 0..5 conferidos no menu", confirmed=True)
             t = RomProfile.load(prof).table("skills")
@@ -105,7 +105,7 @@ class TextEditTest(unittest.TestCase):
 
     def test_menor_preenche_com_nul_e_maior_recusado(self):
         # Nome solto (tabela sem separador): o menor é completado com NUL.
-        d = json.loads((ROOT / "profiles" / "SLUS-00940-USA.json").read_text())
+        d = json.loads((ROOT / "profiles" / "SLUS-00940-USA.json").read_text(encoding="utf-8"))
         d["tables"]["skills"]["names"].pop("separator")
         plain = RomProfile(d).table("skills")
         off, old, new = names.encode_name(plain, make_full_slus(skill_fmt="{}"), 0, "Golpe")
@@ -191,7 +191,7 @@ class GenericTablesTest(unittest.TestCase):
     def test_integridade_por_tabela(self):
         self.assertFalse(SKILLS.integrity(self.data))   # hash do LVCP é da tabela real
         self.assertFalse(WEAPONS.integrity(self.data))
-        d = json.loads((ROOT / "profiles" / "SLUS-00940-USA.json").read_text())
+        d = json.loads((ROOT / "profiles" / "SLUS-00940-USA.json").read_text(encoding="utf-8"))
         d["tables"]["skills"].pop("integrity_sha256")
         self.assertIsNone(RomProfile(d).table("skills").integrity(self.data))
 

@@ -35,9 +35,10 @@ from pathlib import Path
 
 from inverse_engine.core.profile import RomProfile, match_profiles
 from inverse_engine.core.rom_image import RomImage
+from inverse_engine.core.resources import DATA_ROOT
 from inverse_engine.research.findings import FindingsDB
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = DATA_ROOT
 PROFILES = ROOT / "profiles"
 FINDINGS = ROOT / "research" / "findings"
 

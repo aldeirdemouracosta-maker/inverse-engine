@@ -1,0 +1,4 @@
+#!/bin/sh
+# AppImage: sem argumentos abre a interface; "InverseEngine.AppImage abrir jogo.cue" usa o modo terminal
+HERE="$(dirname "$(readlink -f "$0")")"
+exec "$HERE/usr/bin/InverseEngine/InverseEngine" "$@"

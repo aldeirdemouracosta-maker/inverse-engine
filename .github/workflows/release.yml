@@ -1,0 +1,66 @@
+name: executaveis
+# Tag "v*" (ex.: v0.10.0) → monta AppImage (Linux) e .exe (Windows) e publica na página de Releases.
+# "Run workflow" manual → só monta; os arquivos ficam nos artefatos da execução.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  linux:
+    runs-on: ubuntu-22.04  # glibc mais antiga: o AppImage roda em distros de 2022 em diante
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0 libgl1 libfontconfig1 libglib2.0-0 libdbus-1-3 libxcb-cursor0
+      - run: pip install PySide6 pyinstaller
+      - run: python -m unittest discover -s tests -t .
+      - run: python packaging/build.py
+      - run: packaging/appimage.sh
+      - name: teste rápido do AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          XDG_DATA_HOME: ${{ runner.temp }}/xdg
+        run: dist/InverseEngine-x86_64.AppImage findings | head -3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/InverseEngine-x86_64.AppImage
+  windows:
+    runs-on: windows-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install PySide6 pyinstaller
+      - run: python packaging/build.py
+      - name: teste rápido do .exe
+        shell: bash
+        run: dist/inverse-engine-cli.exe findings | head -3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/InverseEngine.exe
+            dist/inverse-engine-cli.exe
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

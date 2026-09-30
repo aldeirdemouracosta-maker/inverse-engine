@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 0.11.0 — Executáveis para download
+- `.github/workflows/release.yml`: tag `v*` monta AppImage (Linux, Ubuntu 22.04) e `.exe` (Windows:
+  interface + modo terminal) com PyInstaller e publica na página de Releases; teste rápido de cada um
+- `python -m inverse_engine` (e o executável): sem argumentos ou com projeto abre a interface; com
+  comando roda o modo terminal
+- `core/resources.py`: no executável, perfis e findings vão para a pasta de dados do usuário
+  (copiados só se faltarem); fora dele, nada muda
+- `packaging/`: build.py, appimage.sh, AppRun, .desktop, ícone
+- CI roda os testes também no Windows; testes leem/gravam texto sempre em UTF-8
+
 ## Pesquisa anterior do usuário registrada (Exodus e endereços de RAM)
 - Perfil: `record_ram` das armas (0x8006C35C, F-0003) e das habilidades (0x8008154C, S-0004), PROVAVEL:
   observação anterior na RAM + conta pelo cabeçalho do executável (t_addr 0x8006C000); cheats das armas

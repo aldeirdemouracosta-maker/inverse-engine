@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Inverse Engine
+Comment=Modificador de jogos de PS1
+Exec=InverseEngine
+Icon=inverse-engine
+Categories=Development;Utility;
+Terminal=false

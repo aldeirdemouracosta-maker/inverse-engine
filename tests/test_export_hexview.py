@@ -48,7 +48,7 @@ class ExportTest(unittest.TestCase):
         self.assertEqual(f["cue"].name, "Rebalance v1.2.cue")
         for k in ("imagem", "bps", "cue", "relatorio_md", "relatorio_json"):
             self.assertTrue(f[k].exists(), k)
-        self.assertIn('FILE "Rebalance v1.2.bin" BINARY', f["cue"].read_text())
+        self.assertIn('FILE "Rebalance v1.2.bin" BINARY', f["cue"].read_text(encoding="utf-8"))
         new = f["imagem"].read_bytes()
         self.assertEqual(bps.apply(self.bin.read_bytes(), f["bps"].read_bytes()), new)
         self.assertEqual(hashlib.sha256(self.bin.read_bytes()).hexdigest(), self.orig_hash)  # original intocado

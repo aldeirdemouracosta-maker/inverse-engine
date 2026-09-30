@@ -6,6 +6,24 @@ Núcleo em Python 3.10+ só com biblioteca padrão; interface em PySide6.
 O **VH2 Studio** (Vandal Hearts II, SLUS-00940, NTSC-U) é o primeiro perfil de jogo:
 `profiles/SLUS-00940-USA.json` + `research/findings/SLUS-00940-USA.json`.
 
+## Download (sem instalar Python)
+
+Página **Releases** do repositório → última versão:
+
+- **Linux:** `InverseEngine-x86_64.AppImage` →
+  `chmod +x InverseEngine-x86_64.AppImage && ./InverseEngine-x86_64.AppImage`
+  (modo terminal: `./InverseEngine-x86_64.AppImage abrir "Vandal Hearts II (USA).cue"`).
+  Se reclamar de FUSE: `sudo apt install libfuse2` ou rode com `--appimage-extract-and-run`.
+- **Windows:** `InverseEngine.exe` (interface) e `inverse-engine-cli.exe` (modo terminal, no Prompt).
+  O Windows pode avisar "editor desconhecido" (o executável não é assinado): *Mais informações → Executar assim mesmo*.
+
+No executável, perfis e findings ficam na pasta do usuário (copiados na primeira abertura, nunca
+sobrescritos): `~/.local/share/inverse-engine/` no Linux, `%APPDATA%\InverseEngine\` no Windows.
+
+Nova versão: atualizar `__version__`, `git tag v0.11.0 && git push origin v0.11.0`; o GitHub Actions
+(`.github/workflows/release.yml`) monta e publica os arquivos. Local: `python packaging/build.py`
+(+ `packaging/appimage.sh` no Linux).
+
 ## Arquitetura
 
 ```
@@ -30,7 +48,7 @@ RomImage → RomProfile → PatchStack → ChangeSet → Validation → Export
 ## Interface
 
 ```bash
-python3 -m pip install --user -r requirements.txt   # PySide6 (só a interface precisa)
+python3 -m pip install --user -r requirements.txt   # a partir do código-fonte: PySide6 (só a interface precisa)
 ./iniciar.sh                                         # Linux  (Windows: iniciar.bat)
 ```
 

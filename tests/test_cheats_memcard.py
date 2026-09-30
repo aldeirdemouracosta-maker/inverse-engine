@@ -19,13 +19,13 @@ SLUS = make_slus(names={182: "Rebelrod"})
 
 def profile_without_ram():
     """Perfil real sem `record_ram` (para testar a recusa sem endereço com evidência)."""
-    d = json.loads((ROOT / "profiles" / "SLUS-00940-USA.json").read_text())
+    d = json.loads((ROOT / "profiles" / "SLUS-00940-USA.json").read_text(encoding="utf-8"))
     d["tables"]["weapons"].pop("record_ram", None)
     return RomProfile(d)
 
 
 def profile_with_ram(address="0x800A0000", finding="F-0003"):
-    d = json.loads((ROOT / "profiles" / "SLUS-00940-USA.json").read_text())
+    d = json.loads((ROOT / "profiles" / "SLUS-00940-USA.json").read_text(encoding="utf-8"))
     d["tables"]["weapons"]["record_ram"] = {"address": address, "finding": finding}
     return RomProfile(d)
 
