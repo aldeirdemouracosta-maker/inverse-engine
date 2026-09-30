@@ -20,7 +20,7 @@ Página **Releases** do repositório → última versão:
 No executável, perfis e findings ficam na pasta do usuário (copiados na primeira abertura, nunca
 sobrescritos): `~/.local/share/inverse-engine/` no Linux, `%APPDATA%\InverseEngine\` no Windows.
 
-Nova versão: atualizar `__version__`, `git tag v0.11.0 && git push origin v0.11.0`; o GitHub Actions
+Nova versão: atualizar `__version__` e, no GitHub, Actions → **executaveis** → *Run workflow* (ou enviar a tag `v0.11.0`); o GitHub Actions
 (`.github/workflows/release.yml`) monta e publica os arquivos. Local: `python packaging/build.py`
 (+ `packaging/appimage.sh` no Linux).
 
