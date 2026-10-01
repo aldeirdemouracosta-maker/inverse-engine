@@ -18,8 +18,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0 libgl1 libfontconfig1 libglib2.0-0 libdbus-1-3 xvfb \
-          libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xkb1 libxcb-image0 libxcb-render-util0 libxcb-randr0
+      - run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0 libgl1 libfontconfig1 libglib2.0-0 libdbus-1-3 xvfb libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xkb1 libxcb-image0 libxcb-render-util0 libxcb-randr0
         # as libxcb-* entram no AppImage: sem elas a janela não abre em sistemas que não as têm
       - run: pip install PySide6 pyinstaller
       - run: python -m unittest discover -s tests -t .
@@ -85,7 +84,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
-          pattern: "{linux,windows}"
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:

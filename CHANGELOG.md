@@ -4,7 +4,7 @@
 - O AppImage 0.11.0 não trazia as bibliotecas libxcb-* (icccm, keysyms, shape, xkb, cursor) e
   libxkbcommon-x11: em sistemas sem elas o Qt não abria a janela. Agora vêm dentro do AppImage
 - Release testa a interface de verdade: AppImage sob Xvfb e InverseEngine.exe no Windows, com foto
-  da tela (artefato `tela-windows`)
+  da tela (`tela-windows.png`, publicada junto na Release como prévia)
 
 ## 0.11.0 — Executáveis para download
 - `.github/workflows/release.yml`: tag `v*` monta AppImage (Linux, Ubuntu 22.04) e `.exe` (Windows:
